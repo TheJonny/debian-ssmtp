@@ -1,0 +1,276 @@
+head	1.11;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.11
+date	2001.10.14.14.09.31;	author matt;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2001.07.06.16.58.41;	author matt;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2001.04.16.12.09.00;	author matt;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2001.03.19.13.26.26;	author matt;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2001.03.19.12.48.00;	author matt;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2000.09.29.14.26.47;	author matt;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2000.09.10.10.00.50;	author matt;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2000.08.29.11.29.55;	author matt;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2000.08.29.11.27.05;	author matt;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2000.08.29.11.20.32;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2000.05.05.17.10.20;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.11
+log
+@Added German translations courtesy of Sebastian Felten.
+@
+text
+@Template: ssmtp/overwriteconfig
+Type: boolean
+Default: true
+Description: Automatically overwrite config files?
+  The mail configuration file /etc/ssmtp/ssmtp.conf can be automatically
+  updated on each upgrade with the information supplied to the debconf
+  database. If you do not want this to happen (ie/ you want to maintain
+  control of this file yourself) then set this option to have the program
+  never touch this file.
+Description-de: Konfigurationsdateien automatisch überschreiben?
+ Die Konfigurationsdatei /etc/ssmtp/ssmtp.conf kann bei jedem Upgrade
+ automatisch aktualisiert werden. Wenn Sie dies nicht möchten (z.B. weil
+ Sie diese Datei selbst anpassen wollen), dann sollten Sie diese Option
+ nicht wählen.
+
+Template: ssmtp/root
+Type: string
+Default: postmaster
+Description: Who gets mail for userids < 1000?
+  Mail sent to a local user whose UID is less than 1000 will instead be
+  sent here. This is useful for daemons which mail reports to root and
+  other system UIDs.
+Description-de: Wer erhält Mails für User-IDs < 1000?
+ Mails für lokale Benutzer mit einer UID kleiner 1000 können an einen
+ anderen Benutzer umgeleitet werden. Dies ist nützlich bei Daemons, die
+ Reports an den Benutzer root senden. 
+
+Template: ssmtp/mailhub
+Type: string
+Default: mail
+Description: Name of your mailhub?
+  This sets the host to which mail is delivered. The actual machine
+  name is required; no MX records are consulted. Commonly, mailhosts
+  are named "mail.domain.com".
+Description-de: Name des Mailhub?
+ Dies ist die Maschine, zu der Mails geliefert werden. Es wird
+ der komplette Name benötigt. MX-Einträge werden nicht beachtet.
+ Normalerweise ist dies ein Rechner mit dem Namen "mail.domain.com".
+
+Template: ssmtp/port
+Type: string
+Default: 25
+Description: Remote SMTP port number
+  If your remote SMTP server listens on a port other than 25 (Standard/RFC)
+  then set it here.
+Description-de: Ferner SMTP-Port
+ Wenn der ferne SMTP-Server auf einem anderen als dem Standard-SMTP-Port
+ 25 (Standard/RFC) läuft, dann geben Sie den Port hier an. 
+
+Template: ssmtp/rewritedomain
+Type: string
+Description: What domain to masquerade as?
+  ssmtp will use "username@@REWRITEDOMAIN" as the default From: address
+  for outgoing mail which contains only a local username.
+Description-de: Als welche Domain maskieren?
+ Ssmtp benutzt das Schema "Benutzername@@REWRITEDOMAIN" in der
+ Absenderzeile für ausgehende Mails, die nur einen lokalen
+ Benutzernamen als Absender enthalten.
+
+Template: ssmtp/mailname
+Type: string
+Description: What name to store in /etc/mailname
+  This is the portion of the address after the '@@' sign to be shown on
+  outgoing news and mail messages.
+Description-de: Welchen Namen in /etc/mailname speichern?
+ Dies ist der Teil der Adresse nach dem @@, der für alle ausgehenden
+ eMails und News verwendet wird.
+
+Template: ssmtp/hostname
+Type: string
+Description: Fully qualified hostname?
+  This should specify the real hostname of this machine, and will be
+  sent to the mailhub when delivering mail.
+Description-de: vollständiger Hostname?
+ Dies sollte der richtige Hostname ihrer Maschine sein. Er wird beim
+ Mail senden an den Mailhub übermittelt.
+
+Template: ssmtp/fromoverride
+Type: boolean
+Default: false
+Description: Allow override of From: line in email header?
+  A "positive" response will permit local users to enter any From: line
+  in their messages without it being mangled, and cause ssmtp to rewrite
+  the envelope header with that address. A "negative" response will
+  disallow this, and use only the default address or addresses set in
+  /etc/ssmtp/revaliases.
+Description-de: Überschreiben der From:-Zeile erlauben?
+ Eine positive Antwort wird es lokalen Benutzern verbieten, eine From:-Zeile
+ in ausgehenden Nachrichten zu verwenden, ohne das durch ssmtp ein Envelope-
+ Header mit dieser Adresse geschrieben wird. Eine negative Anwort verhindert
+ dies und lässt nur die normale Adresse oder eine in /etc/ssmtp/revaliases
+ spezifizierte zu.
+@
+
+
+1.10
+log
+@Fix for bug #100433
+@
+text
+@d10 5
+d23 4
+d35 4
+d46 3
+d55 4
+d65 3
+d74 3
+d87 6
+@
+
+
+1.9
+log
+@Added patch for SMTP port selection.
+@
+text
+@d55 1
+a55 1
+Description: Override From: line in email?
+@
+
+
+1.8
+log
+@Fixed problem with automatically overwriting the config file.
+@
+text
+@d27 7
+@
+
+
+1.7
+log
+@Changed system UIDs from <10 to <1000.
+@
+text
+@d1 10
+@
+
+
+1.6
+log
+@Added code for /etc/mailname setting.
+@
+text
+@d4 2
+a5 2
+Description: Who gets mail for userids < 10?
+  Mail sent to a local user whose UID is less than 10 will instead be
+@
+
+
+1.5
+log
+@Checkpoint.
+@
+text
+@d23 6
+@
+
+
+1.4
+log
+@Another update for bug 65195
+@
+text
+@d5 3
+d13 3
+d20 2
+d26 2
+d33 5
+@
+
+
+1.3
+log
+@Updated fix for bug 65195
+@
+text
+@d21 1
+a21 1
+Default: true
+@
+
+
+1.2
+log
+@Changed to fix bug 65195.
+@
+text
+@d20 2
+a21 1
+Type: string
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d18 4
+@

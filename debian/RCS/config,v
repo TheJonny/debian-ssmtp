@@ -1,0 +1,180 @@
+head	1.7;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.7
+date	2001.04.16.12.09.00;	author matt;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2001.03.22.12.42.30;	author matt;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2001.03.19.13.26.17;	author matt;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2000.09.29.14.58.58;	author matt;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2000.09.29.14.25.41;	author matt;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2000.08.29.11.20.32;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2000.05.05.17.10.20;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.7
+log
+@Added patch for SMTP port selection.
+@
+text
+@#!/bin/sh -e
+#
+# $Id: config,v 1.6 2001/03/22 12:42:30 matt Exp $
+#
+
+. /usr/share/debconf/confmodule
+
+db_input medium ssmtp/overwriteconfig || true
+db_go
+
+db_get ssmtp/overwriteconfig || true
+OverwriteConfig="${RET:-true}"
+
+if test "$OverwriteConfig" = "true"
+then
+	db_input medium ssmtp/root || true
+	db_go
+
+	db_input medium ssmtp/mailhub || true
+	db_go
+
+	db_input low ssmtp/port || true
+	db_go
+fi
+
+if test -s /etc/mailname
+then
+	ETC_MAILNAME="ExistsAndNotZeroBytes"
+fi
+
+if test -z "$ETC_MAILNAME" -o "$OverwriteConfig" = "true"
+then
+	db_input medium ssmtp/rewritedomain || true
+	db_go
+
+	db_input low ssmtp/hostname || true
+	db_go
+fi
+
+if test "$OverwriteConfig" = "true"
+then
+	db_input medium ssmtp/fromoverride || true
+	db_go
+fi
+
+# Program End
+exit 0
+@
+
+
+1.6
+log
+@Fixed to not ask extra unwanted questions.
+@
+text
+@d3 1
+a3 1
+# $Id$
+d20 3
+@
+
+
+1.5
+log
+@Fixed problem with automatically overwriting the config file.
+@
+text
+@d1 4
+a4 1
+#!/bin/sh
+d11 2
+a12 11
+db_input medium ssmtp/root || true
+db_go
+
+db_input medium ssmtp/mailhub || true
+db_go
+
+db_input medium ssmtp/rewritedomain || true
+db_go
+
+db_input low ssmtp/hostname || true
+db_go
+d14 28
+a41 2
+db_input medium ssmtp/fromoverride || true
+db_go
+@
+
+
+1.4
+log
+@Backed out changes for /etc/mailname.
+@
+text
+@d5 3
+@
+
+
+1.3
+log
+@Added code for /etc/mailname setting.
+@
+text
+@a13 3
+db_input low ssmtp/mailname || true
+db_go
+
+@
+
+
+1.2
+log
+@Changed to fix bug 65195.
+@
+text
+@d14 3
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d17 3
+@

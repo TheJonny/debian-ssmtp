@@ -1,0 +1,35 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.1
+date	2000.05.05.17.01.29;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@I am releasing version 2.36 without extensive testing. I do not use sSMTP
+anymore, so it is difficult to do a good job as a maintainer.
+
+Since I have received a few patches, I have applied them after having
+reviewed them. However, I do not guarantee that they won't break
+something.
+
+If somebody wants to take over sSMTP's maintenance, please contact me.
+
+-- 
+Hugo Haas <hugo@@larve.net> - February 5, 2000
+@

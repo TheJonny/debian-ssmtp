@@ -7,20 +7,16 @@
 #include "string_ext.h"
 
 #ifdef NOSTRDUP
-char *
-strdup (p)
-     char *p;
+char *strdup(char *p)
 {
-  char *q, *malloc (), *strcpy ();
+	char *q, *malloc (), *strcpy ();
 
-  if ((q = malloc ((unsigned) strlen (p) + 1)) == NULL)
-    {
-      return NULL;
-    }
-  else
-    {
-      return strcpy (q, p);
-    }
+	if((q = malloc((unsigned) strlen (p) + 1)) == NULL) {
+		return NULL;
+	}
+	else {
+		return strcpy (q, p);
+	}
 }
 #endif
 

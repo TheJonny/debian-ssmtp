@@ -1,52 +1,94 @@
 #!/bin/sh -e
-
 #
-# Figure out the system's mailname
-#
-
-syshostname=`hostname --fqdn`
-if [ ! -f /etc/mailname ]; then
-  echo 'Please enter the "mail name" of your system.  This is the hostname'
-  echo 'portion of the address to be shown on outgoing news and mail messages.'
-  echo "The default is $syshostname, your system's host name."
-  echo
-  echo -n "Mail name [$syshostname]: "
-  read mailname
-  echo
-  if [ "$mailname" ]; then
-    echo $mailname >/etc/mailname
-  else
-    echo $syshostname >/etc/mailname
-  fi
-fi
-
-#
-# Generate configuration file if necessary
+# $Id: postinst,v 1.12 2001/12/15 11:47:05 matt Exp $
 #
 
-if [ ! -s /etc/ssmtp/ssmtp.conf ];
+if test -L /usr/doc/ssmtp
 then
-	cat >>/etc/ssmtp/ssmtp.conf <<EOF
+	rm -f /usr/doc/ssmtp 2>/dev/null || true
+#else
+#	if cd /usr/doc 2>/dev/null
+#	then
+#		ln -sf ../share/doc/ssmtp ssmtp
+#	fi
 #
-# /etc/ssmtp.conf -- a config file for sSMTP sendmail.
-#
-# The person who gets all mail for userids < 10
-root=postmaster
-
-# The place where the mail goes. The actual machine name is required
-# no MX records are consulted. Commonly mailhosts are named mail.domain.com
-# The example will fit if you are in domain.com and you mailhub is so named.
-mailhub=mail
-
-# Where will the mail seem to come from?
-#rewriteDomain=`cat /etc/mailname`
-
-# The full hostname
-hostname=`hostname --fqdn`
-
-# Set this to never rewrite the "From:" line (unless not given) and to
-# use that address in the "from line" of the envelope.
-#FromLineOverride=YES
-EOF
-	echo "Please check the configuration file in /etc/ssmtp/ssmtp.conf for correctness."
 fi
+
+. /usr/share/debconf/confmodule
+
+db_get ssmtp/overwriteconfig
+OverwriteConfig="${RET:-true}"
+
+db_get ssmtp/root
+PostMaster="${RET:-postmaster}"
+
+db_get ssmtp/mailhub
+MailHub="${RET:-mail}"
+
+db_get ssmtp/port
+RemotePort="$RET"
+
+db_get ssmtp/hostname
+FQDN="${RET:-`hostname --fqdn`}"
+
+db_get ssmtp/rewritedomain
+RewriteDomain="$RET"
+
+if test -s /etc/mailname
+then
+	:
+else
+	test -n "$FQDN" && MailName="$FQDN"
+	test -n "$RewriteDomain" && MailName="$RewriteDomain"
+
+	touch /etc/mailname
+	chmod 644 /etc/mailname
+	echo "$MailName" > /etc/mailname
+fi
+
+db_get ssmtp/fromoverride
+test "$RET" = "true" && FromOverride="$RET"
+
+test -d /etc/ssmtp || exit 1
+
+if test -s /etc/ssmtp/ssmtp.conf
+then
+	if test "$OverwriteConfig" = "false"
+	then
+		exit 0
+	fi
+fi
+exec 1>/etc/ssmtp/ssmtp.conf
+
+echo "***     This file is auto-generated using debconf on install.     ***"
+echo "*** Any changes made may be overwritten on next upgrade depending ***"
+echo "***  on your answer to the question on overwriting config files.  ***"
+echo "#"
+echo "# Config file for sSMTP sendmail"
+echo "#"
+echo "# The person who gets all mail for userids < 1000"
+echo "root=$PostMaster"
+echo
+echo "# The place where the mail goes. The actual machine name is required no "
+echo "# MX records are consulted. Commonly mailhosts are named mail.domain.com"
+if test "$RemotePort" = "25" -o -z "$RemotePort"
+then
+	echo "mailhub=$MailHub"
+else
+	echo "mailhub=${MailHub}:$RemotePort"
+fi
+echo
+echo "# Where will the mail seem to come from?"
+test -z "$RewriteDomain" && echo -n "#"
+echo "rewriteDomain=$RewriteDomain"
+echo ""
+echo "# The full hostname"
+echo "hostname=$FQDN"
+echo
+echo "# Set this to never rewrite the "From:" line (unless not given) and to"
+echo "# use that address in the "from line" of the envelope."
+test -z "$FromOverride" && echo -n "#"
+echo "FromLineOverride=YES"
+
+# Program End
+exit 0

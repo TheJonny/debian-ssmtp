@@ -1,12 +1,35 @@
-Package: ssmtp
-Version: 2.32-1
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.1
+date	2000.05.05.17.05.08;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@Package: ssmtp
+Version: 2.34-1
 Architecture: i386
 Depends: libc6
 Conflicts: mail-transport-agent
-Replaces: mail-transport-agent, exim, sendmail, smail, qmail, zmailer
+Replaces: mail-transport-agent
 Provides: mail-transport-agent
 Installed-Size: 42
-Maintainer: Hugo Haas <hugo@debian.org>
+Maintainer: Hugo Haas <hugo@@debian.org>
 Description: Extrem simpler Mail-Transfer-Agent um die Mail sicher, 
 effectiv und einfach zur Mailzentrale zu bringen. Keine Superuser-Binaries
 oder aehnliches verwendet. Kein Mailspool zum drin herumstochern. Startet 
@@ -16,3 +39,4 @@ eingestellten Host. Extrem einfache Konfiguration.
 Warnung: das obige ist alles, was ssmtp macht. Ssmtp empfaengt keine Mail,
 expandiert keine Aliases und managed keine Queue. Das soll der Administrator
 der Mailzentrale machen.
+@

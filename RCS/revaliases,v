@@ -1,0 +1,46 @@
+head	1.2;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.2
+date	2001.04.16.12.07.45;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2000.05.05.17.01.29;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Example revaliases file
+@
+
+
+1.2
+log
+@Added patch for alternate SMTP port
+@
+text
+@# sSMTP aliases
+# 
+# Format:	local_account:outgoing_address:mailhub
+#
+# Example: root:your_login@@your.domain:mailhub.your.domain[:port]
+# where [:port] is an optional port number that defaults to 25.
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 2
+a6 1
+# Example: root:your_login@@your.domain:mailhub.your.domain
+@

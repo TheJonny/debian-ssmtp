@@ -1,0 +1,112 @@
+head	1.4;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.4
+date	2001.03.21.20.29.27;	author matt;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2000.09.14.17.52.31;	author matt;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2000.09.10.10.00.50;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2000.05.05.17.05.08;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.4
+log
+@Fixed bug when moving files around after NMU.
+@
+text
+@#!/bin/sh -e
+#
+# $Id$
+#
+
+if test -s /etc/ssmtp.conf
+then
+	echo "Configuration files found in /etc, moving them to /etc/ssmtp"
+
+	mkdir /etc/ssmtp 2>/dev/null || true
+	mv -f /etc/ssmtp.conf /etc/ssmtp 2>/dev/null || true
+
+fi
+
+if test -s /etc/revaliases
+then
+	mkdir /etc/ssmtp 2>/dev/null || true
+	mv -f /etc/revaliases /etc/ssmtp 2>/dev/null || true
+fi
+
+# Program End
+exit 0
+@
+
+
+1.3
+log
+@Cleaned up warning message.
+@
+text
+@d2 3
+d10 2
+a11 2
+	mkdir /etc/ssmtp 2>/dev/null
+	mv /etc/ssmtp.conf /etc/ssmtp
+a12 1
+	test -s /etc/revaliases && mv /etc/revaliases /etc/ssmtp
+d15 7
+@
+
+
+1.2
+log
+@Checkpoint.
+@
+text
+@d5 1
+a5 1
+	echo "Configuration files existing in /etc, moving them to /etc/ssmtp"
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d3 1
+a3 1
+if [ -s /etc/ssmtp.conf ];
+d5 6
+a10 8
+	echo "Configuration files existing in /etc; moving them to /etc/ssmtp."
+	if [ ! -d /etc/ssmtp ]; then
+		mkdir /etc/ssmtp
+	fi
+	mv /etc/ssmtp.conf /etc/ssmtp/ssmtp.conf
+	if [ -s /etc/revaliases ]; then
+		mv /etc/revaliases /etc/ssmtp/revaliases
+	fi
+d13 1
+a13 1
+#DEBHELPER#
+@

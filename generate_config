@@ -5,35 +5,48 @@
 #
 
 syshostname=`hostname --fqdn`
-if [ ! -f /etc/mailname ]; then
-  echo 'Please enter the "mail name" of your system.  This is the hostname'
-  echo 'portion of the address to be shown on outgoing news and mail messages.'
-  echo "The default is $syshostname, your system's host name."
-  echo
-  echo -n "Mail name [$syshostname]: "
-  read mailname
-  echo
-  if [ ! "$mailname" ]; then
-    mailname=$syshostname
-  fi
+if ! test -f /etc/mailname
+then
+	echo "Please enter the mail name of your system."
+	echo "This is the hostname portion of the address to be shown"
+	echo "on outgoing news and mail messages."
+	echo "The default is $syshostname, your system's host name."
+	echo
+	echo -n "Mail name [$syshostname]: "
+	read mailname
+	echo
+
+	if test -z "$mailname"
+	then
+		mailname=$syshostname
+	fi
 else
-  mailname=`cat /etc/mailname`
+	mailname="`head -1 /etc/mailname`"
 fi
 
+echo -n "Please enter the SMTP port number [25]: "
+read smtpport
+if test -z "$smtpport"
+then
+	mailhub=$mailhub
+else
+	mailhub="$mailhub:$smtpport"
+fi
 
 #
 # Generate configuration file
 #
-
-if [ -s $1 ]; then
-    echo Configuration file $1 already exists.
-    exit
+if test -s "$1"
+then
+	echo Configuration file $1 already exists.
+	exit 0
 fi
+
 cat >>$1 <<EOF
 #
 # /etc/ssmtp.conf -- a config file for sSMTP sendmail.
 #
-# The person who gets all mail for userids < 10
+# The person who gets all mail for userids < 1000
 root=postmaster
 # The place where the mail goes. The actual machine name is required
 # no MX records are consulted. Commonly mailhosts are named mail.domain.com

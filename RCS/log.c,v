@@ -1,0 +1,437 @@
+head	1.9;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.9
+date	2002.02.10.19.31.54;	author matt;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2002.02.10.18.30.46;	author matt;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2001.07.30.11.40.45;	author matt;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2001.07.30.11.39.44;	author matt;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2001.07.30.11.38.23;	author matt;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2001.07.21.12.00.21;	author matt;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2001.07.18.17.31.10;	author matt;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2001.07.06.17.39.24;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2001.05.24.12.10.31;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Log output to syslog and potentially a log file.
+@
+
+
+1.9
+log
+@Added cast on NULL check
+@
+text
+@/*
+
+ $Id: log.c,v 1.8 2002/02/10 18:30:46 matt Exp matt $
+
+ See COPYRIGHT for the license
+
+*/
+#include <sys/param.h>
+#include <unistd.h>
+#include <stdarg.h>
+#include <syslog.h>
+#include <stdio.h>
+#include <pwd.h>
+#include "ssmtp.h"
+
+extern char *prog_name;
+extern int log_level;
+
+
+void log_event(int priority, char *format, ...)
+{
+	char buf[(BUF_SZ + 1)];
+	va_list ap;
+
+	va_start(ap, format);
+	(void)vsnprintf(buf, BUF_SZ, format, ap);
+	va_end(ap);
+
+#ifdef LOGFILE
+	if((fp = fopen("/tmp/ssmtp.log", "a")) != (FILE *)NULL) {
+		(void)fprintf(fp, "%s\n", buf);
+		(void)fclose(fp);
+	}
+	else {
+		(void)fprintf(stderr, "Can't write to /tmp/ssmtp.log\n");
+	}
+#endif
+
+#if HAVE_SYSLOG_H
+#if OLDSYSLOG
+	openlog("sSMTP", LOG_PID);
+#else
+	openlog("sSMTP", LOG_PID, LOG_MAIL);
+#endif
+	syslog(priority, buf);
+	closelog();
+#endif
+}
+
+/*
+dead_letter() -- save stdin to ~/dead.letter, if possible
+*/
+void dead_letter(void)
+{
+	char path[(MAXPATHLEN + 1)], buf[(BUF_SZ + 1)];
+	struct passwd *pw;
+	uid_t uid;
+	FILE *fp;
+
+	uid = getuid();
+	pw = getpwuid(uid);
+
+	if(isatty(fileno(stdin))) {
+		if(log_level > 0) {
+			log_event(LOG_ERR, "stdin is a TTY - not saving to %s/dead.letter, pw->pw_dir");
+		}
+		return;
+	}
+
+	if(pw == (struct passwd *)NULL) {
+		/* Far to early to save things. */
+		if(log_level > 0) {
+			log_event(LOG_ERR, "No sender (can't happen), failing horribly");
+		}
+		return;
+	}
+
+	if(snprintf(path, BUF_SZ, "%s/dead.letter", pw->pw_dir) == -1) {
+		/* can't use die() here since dead_letter() is called from die() */
+		exit(1);
+	}
+
+	if((fp = fopen(path, "a")) == (FILE *)NULL) {
+		/* Perhaps the person doesn't have a homedir... */
+		if(log_level > 0) {
+			log_event(LOG_ERR, "Can't open %s, failing horribly!", path);
+		}
+		return;
+	}
+
+	/* Make sure we start on a new line, */
+	/* with a blank line separating messages. */
+	(void)fprintf(fp, "\n\n");
+
+	while(fgets(buf, sizeof(buf), stdin)) {
+		(void)fputs(buf, fp);
+	}
+
+	if(fclose(fp) == -1) {
+		if(log_level > 0) {
+			log_event(LOG_ERR, "Can't close %s/dead.letter, possibly truncated", pw->pw_dir);
+		}
+	}
+}
+
+void die(char *format, ...)
+{
+	char buf[(BUF_SZ + 1)];
+	va_list ap;
+
+	va_start(ap, format);
+	(void)vsnprintf(buf, BUF_SZ, format, ap);
+	va_end(ap);
+
+	(void)fprintf(stderr, "%s: %s\n", prog_name, buf);
+	log_event(LOG_ERR, buf);
+
+	/* Send message to dead.letter */
+	(void)dead_letter();
+
+	exit(1);
+}
+
+void paq(char *format, ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	(void)vfprintf(stderr, format, ap);
+	va_end(ap);
+
+	exit(0);
+}
+@
+
+
+1.8
+log
+@Renamed variable
+@
+text
+@d3 1
+a3 1
+ $Id: logging.c,v 1.7 2001/07/30 11:40:45 matt Exp matt $
+d30 1
+a30 1
+	if((fp = fopen("/tmp/ssmtp.log", "a")) != NULL) {
+d70 1
+a70 1
+	if(pw == NULL) {
+d83 1
+a83 1
+	if((fp = fopen(path, "a")) == NULL) {
+@
+
+
+1.7
+log
+@Header clean-up (again)
+@
+text
+@d3 1
+a3 1
+ $Id: logging.c,v 1.6 2001/07/30 11:39:44 matt Exp matt $
+d16 1
+a16 1
+extern char *ProgName;
+d115 1
+a115 1
+	(void)fprintf(stderr, "%s: %s\n", ProgName, buf);
+@
+
+
+1.6
+log
+@Header clean-up
+@
+text
+@d3 3
+a5 1
+ $Id: logging.c,v 1.5 2001/07/30 11:38:23 matt Exp matt $
+@
+
+
+1.5
+log
+@Code clean-up
+@
+text
+@d2 3
+a4 3
+*
+* $Id: logging.c,v 1.4 2001/07/21 12:00:21 matt Exp matt $
+*
+@
+
+
+1.4
+log
+@Added new paq (print and quit) function
+@
+text
+@d3 1
+a3 1
+* $Id: logging.c,v 1.3 2001/07/18 17:31:10 matt Exp matt $
+d6 2
+d9 1
+d11 2
+d14 2
+a15 8
+#if HAVE_SYSLOG_H
+#include <syslog.h>
+#else
+#define LOG_ERR 0
+#define LOG_INFO 0
+#endif
+
+#include "ssmtp.h"
+d18 1
+a18 1
+void log_event(int syslog_code, char *format, ...)
+d20 1
+a20 1
+	char buffer[(MAXLINE + 1)];
+d24 1
+a24 1
+	(void)vsnprintf(buffer, MAXLINE, format, ap);
+d29 2
+a30 2
+		fprintf(fp, "%s\n", buffer);
+		fclose(fp);
+d33 1
+a33 1
+		fprintf(stderr, "Can't write to /tmp/ssmtp.log\n");
+d43 1
+a43 1
+	(void)syslog(syslog_code, buffer);
+d48 55
+a102 1
+extern char *ProgName;
+d106 1
+a106 1
+	char buffer[(MAXLINE + 1)];
+d110 1
+a110 1
+	(void)vsnprintf(buffer, MAXLINE, format, ap);
+d113 2
+a114 2
+	(void)fprintf(stderr, "%s: %s\n", ProgName, buffer);
+	log_event(LOG_ERR, buffer);
+d117 1
+a117 1
+	flush();
+d127 1
+a127 1
+	(void)vprintf(format, ap);
+a128 3
+
+	/* Send message to dead.letter */
+	flush();
+@
+
+
+1.3
+log
+@Removed malloc() and rely on fixed strings
+@
+text
+@d3 1
+a3 1
+* $Id: logging.c,v 1.2 2001/07/06 17:39:24 matt Exp $
+d67 14
+@
+
+
+1.2
+log
+@Small changes to syslog message
+@
+text
+@d3 1
+a3 1
+* $Id: logging.c,v 1.1 2001/05/24 12:10:31 matt Exp matt $
+d6 1
+a7 3
+#include <stdarg.h>
+#include <assert.h>
+#include <stdlib.h>
+d10 1
+a10 1
+#include <syslog.h>		/* For logging. */
+a18 5
+extern char *ProgName ; /* Name of the program */
+
+/*
+ * log_event -- log something to syslog and the log file.
+ */
+d21 1
+a21 4
+#if HAVE_SYSLOG_H
+	static int syslogOpen = NO;
+#endif
+	int msgsize = 1024;
+a22 2
+	char *buf;
+	FILE *fp;
+d25 1
+a25 13
+	if((fp = fopen("/dev/null","w")) != NULL) {
+		assert(fp);
+		msgsize = vfprintf(fp, format, ap);
+		fclose(fp);
+	}
+
+	buf = (char *)malloc(((msgsize + 1) * sizeof(char *)));
+	if(!buf) {
+		perror("Cannot allocate memory");
+		exit(1);
+	}
+	vsprintf(buf, format, ap);
+
+d30 1
+a30 2
+		fprintf(fp, buf);
+		putc('\n', fp);
+a38 2
+	if(syslogOpen == NO) {
+		syslogOpen = YES;
+d40 1
+a40 1
+		openlog("sSMTP", LOG_PID);
+d42 1
+a42 1
+		openlog("sSMTP", LOG_PID, LOG_MAIL);
+d44 1
+a44 3
+	}
+	(void)syslog(syslog_code, buf);
+
+a46 1
+	free(buf);
+d49 2
+a50 4
+/*
+ * die -- say something and exit with a non-zero return code.
+ *      Save the message on stdin in dead.letter.
+ */
+d53 1
+d57 1
+a57 5
+	fprintf(stderr, "%s: ", ProgName);
+	vfprintf(stderr, format, ap);
+	putc('\n', stderr);
+	flush();			/* Send message to dead.letter */
+	log_event(LOG_ERR, format, ap);
+d59 6
+@
+
+
+1.1
+log
+@Logging functions for sSMTP
+@
+text
+@d3 1
+a3 1
+* $Id$
+d67 1
+a67 1
+		openlog("sSMTP mail", LOG_PID);
+d69 1
+a69 1
+		openlog("sSMTP mail", LOG_PID, LOG_MAIL);
+@

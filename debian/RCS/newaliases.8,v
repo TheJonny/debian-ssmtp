@@ -1,0 +1,138 @@
+head	1.6;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.6
+date	2002.01.02.19.38.12;	author matt;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2001.07.21.11.11.48;	author matt;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2001.07.21.11.03.41;	author matt;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2000.09.29.15.12.03;	author matt;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2000.09.10.10.00.18;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2000.05.05.17.05.08;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.6
+log
+@Fixed spelling mistakes, bug #127419.
+@
+text
+@.TH NEWALIASES 8 "September 2000" "Debian GNU/Linux"
+.SH NAME
+newaliases \- update /etc/aliases database
+.SH SYNOPSIS
+.B newaliases
+.SH DESCRIPTION
+This is a link to the ssmtp binary. It invokes
+.B /usr/sbin/sendmail
+with the
+.B -bi
+option. It is provided for compatibility with the sendmail program.
+.P
+In this case it does absolutely nothing since sSMTP does not support
+/etc/aliases and is just there to avoid programs returning error messages.
+.SH AUTHOR
+This manual page was written by Christoph Lameter <clameter@@debian.org>,
+for the Debian GNU/Linux system. Minor fixes by Matt Ryan <mryan@@debian.org>
+@
+
+
+1.5
+log
+@Changed to reflect the fact that this is a link.
+@
+text
+@d1 1
+a1 1
+.TH NEWALIASES 8 "September 2000" "Debian/GNU Linux"
+@
+
+
+1.4
+log
+@Changed to use correct '-q' option.
+@
+text
+@d7 1
+a7 1
+This is a simple shell script calling
+d10 1
+a10 1
+.B -q
+@
+
+
+1.3
+log
+@Fix for whatis parse problem.
+@
+text
+@d10 1
+a10 1
+.B -bi
+@
+
+
+1.2
+log
+@Minor fixes.
+@
+text
+@d1 2
+a2 2
+.TH NEWALIASES 8 "Sept 2000" "Debian/GNU Linux"
+.SH NEWALIASES
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+.TH NEWALIASES 8
+d6 1
+a6 1
+.SH "DESCRIPTION"
+d8 1
+a8 1
+.B /usr/lib/sendmail
+d13 2
+a14 2
+In this case it absolute does nothing since sSMTP does not support
+/etc/aliases and is just there to avoid programs returning errormessages.
+d17 1
+a17 1
+for the Debian GNU/Linux system.
+@

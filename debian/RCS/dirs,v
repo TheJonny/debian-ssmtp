@@ -1,0 +1,28 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.1
+date	2000.05.05.17.05.08;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision.
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@etc/ssmtp
+usr/sbin
+usr/lib
+usr/share/man/man8
+@

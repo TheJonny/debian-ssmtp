@@ -1,8 +1,289 @@
+ssmtp (2.50.6.1) stable-security; urgency=high
+
+  * Non-maintainer upload by the Security Team
+  * Fix two format string vulnerabilities (die() and log_event())
+    discovered by Max Vozeler <max@hinterhof.net> (CAN-2004-0156)
+
+ -- Matt Zimmerman <mdz@debian.org>  Mon, 12 Apr 2004 09:21:54 -0700
+
+ssmtp (2.50.6) unstable; urgency=low
+
+  * More problems with the header rewriting code (Closes: #140741)
+  * Added nasty botch to work around group addreses not working
+
+ -- Matt Ryan <mryan@debian.org>  Mon,  1 Apr 2002 14:08:04 +0100
+
+ssmtp (2.50.5) unstable; urgency=low
+
+  * Generate MAIL FROM from From: line if present (Closes: #139946)
+
+ -- Matt Ryan <mryan@debian.org>  Fri, 29 Mar 2002 14:45:11 +0000
+
+ssmtp (2.50.4) unstable; urgency=low
+
+  * Make sure that from.c is checked out of RCS (Closes: #134440)
+
+ -- Matt Ryan <mryan@debian.org>  Sun, 17 Feb 2002 22:56:21 +0000
+
+ssmtp (2.50.3) unstable; urgency=low
+
+  * Botch fix comes back to bite, patch from Jason Thomas hopefully fixes
+    this problem (Closes: #133995)
+
+ -- Matt Ryan <mryan@debian.org>  Fri, 15 Feb 2002 19:59:42 +0000
+
+ssmtp (2.50.2) unstable; urgency=low
+
+  * Botch fix for From: line mangling - proper fix will close bug report
+
+ -- Matt Ryan <mryan@debian.org>  Wed, 13 Feb 2002 22:42:17 +0000
+
+ssmtp (2.50.1) unstable; urgency=low
+
+  * Remove debug code
+
+ -- Matt Ryan <mryan@debian.org>  Sun, 10 Feb 2002 21:37:32 +0000
+
+ssmtp (2.50) unstable; urgency=low
+
+  * New version with candidate bug fixes
+
+ -- Matt Ryan <mryan@debian.org>  Sun, 10 Feb 2002 21:05:57 +0000
+
+ssmtp (2.48.3) unstable; urgency=low
+
+  * Apply spelling fixes (Closes: #127419)
+
+ -- Matt Ryan <mryan@debian.org>  Wed,  2 Jan 2002 19:39:14 +0000
+
+ssmtp (2.48.2) unstable; urgency=low
+
+  * Apply spelling fixes (Closes: #125381)
+
+ -- Matt Ryan <mryan@debian.org>  Sat, 22 Dec 2001 11:58:12 +0000
+
+ssmtp (2.48.1) unstable; urgency=low
+
+  * No longer add symlink into /usr/doc (Closes: #123939)
+
+ -- Matt Ryan <mryan@debian.org>  Sat, 15 Dec 2001 11:43:03 +0000
+
+ssmtp (2.48) unstable; urgency=low
+
+  * Fixed buffer overrun (Closes: #117713)
+
+ -- Matt Ryan <mryan@debian.org>  Fri,  2 Nov 2001 10:58:46 +0000
+
+ssmtp (2.47) unstable; urgency=low
+
+  * Fix for dynamic header allocation code from Sam Couter (Closes: #115935)
+
+ -- Matt Ryan <mryan@debian.org>  Wed, 17 Oct 2001 16:24:02 +0100
+
+ssmtp (2.46) unstable; urgency=low
+
+  * Fix new email address parsing code added in 2.45
+
+ -- Matt Ryan <mryan@debian.org>  Tue, 16 Oct 2001 15:39:42 +0100
+
+ssmtp (2.45) unstable; urgency=low
+
+  * Added German debconf translations from Sebastian Felten (Closes: #114295)
+  * Fixed parsing of -oeX options (Closes: #114162)
+  * New email address parsing code
+
+ -- Matt Ryan <mryan@debian.org>  Mon, 15 Oct 2001 19:42:48 +0100
+
+ssmtp (2.44) unstable; urgency=low
+
+  * Added support for '-f' specified email address with no '@domain.com'
+    part (Closes: #108094)
+
+ -- Matt Ryan <mryan@debian.org>  Fri, 10 Aug 2001 16:24:03 +0100
+
+ssmtp (2.43) unstable; urgency=low
+
+  * Major code reorganisation to cleanup and seperate into more logical parts.
+  * Patched to allow From: with no domain part (Closes: #106994)
+
+ -- Matt Ryan <mryan@debian.org>  Mon, 30 Jul 2001 12:43:27 +0100
+
+ssmtp (2.40) unstable; urgency=low
+
+  * Fix To/Cc/Bcc to handle multiple line entries (Closes: #105748)
+  * Updated the 'verbose' and 'debug' options to give more information.
+  * Changed to make package (more) Debian native.
+
+ -- Matt Ryan <mryan@debian.org>  Sat, 21 Jul 2001 12:45:53 +0100
+
+ssmtp (2.39-4) unstable; urgency=low
+
+  * Check for SYSLOG properly to make sure we don't spam all users
+    with syslog() messages (Closes: #103960)
+
+ -- Matt Ryan <mryan@debian.org>  Mon,  9 Jul 2001 16:34:37 +0100
+
+ssmtp (2.39-3) unstable; urgency=low
+
+  * Fixup the syslog message to be more infomative (Closes: #100871)
+
+ -- Matt Ryan <mryan@debian.org>  Fri,  6 Jul 2001 18:40:45 +0100
+
+ssmtp (2.39-2) unstable; urgency=low
+
+  * Reword debconf question on From: line override (Closes: #100433)
+
+ -- Matt Ryan <mryan@debian.org>  Fri,  6 Jul 2001 17:59:37 +0100
+
+ssmtp (2.39-1) unstable; urgency=low
+
+  * Split up ssmtp.c into multiple logical pieces. Also support autoconf
+    for application build.
+
+ -- Matt Ryan <mryan@debian.org>  Tue,  8 May 2001 13:34:39 +0100
+
+ssmtp (2.38-14) unstable; urgency=low
+
+  * Added patch for alternate SMTP port selection
+
+ -- Matt Ryan <mryan@debian.org>  Mon, 16 Apr 2001 12:50:23 +0100
+
+ssmtp (2.38-13) unstable; urgency=low
+
+  * Don't ask unnecessary questions on install/upgrade (Closes: #84770)
+
+ -- Matt Ryan <mryan@debian.org>  Thu, 22 Mar 2001 12:35:07 +0000
+
+ssmtp (2.38-12) unstable; urgency=low
+
+  * Don't barf on preinst after broken NMU (Closes: #90367)
+
+ -- Matt Ryan <mryan@debian.org>  Wed, 21 Mar 2001 20:43:58 +0000
+
+ssmtp (2.38-11) unstable; urgency=low
+
+  * Ask whether to overwrite config file (Closes: #84770)
+
+ -- Matt Ryan <matt@banana.org.uk>  Mon, 19 Mar 2001 13:07:52 +0000
+
+ssmtp (2.38-10) unstable; urgency=low
+
+  * Backout non-maintainer changes (Closes: #90161)
+  * Fix system UID check (Closes: #90029)
+
+ -- Matt Ryan <matt@banana.org.uk>  Mon, 19 Mar 2001 12:50:48 +0000
+
+ssmtp (2.38-9.1) unstable; urgency=low
+
+  * Non-maintainer upload
+  * Keeps an md5sum of auto-generated ssmtp.conf, and does not overwrite
+    local admin's changes to this file. Fixes: #84770
+  * Added /usr/doc symlink code to postinst and prerm.
+  * Fixed permissions on install scripts to lintian's liking.
+  * Added "-isp" flags to dpkg-gencontrol.
+
+ -- Paul Martin <pm@debian.org>  Sat, 17 Mar 2001 12:42:12 +0000
+
+ssmtp (2.38-9) unstable; urgency=low
+
+  * /etc/mailname logic fix (Closes: #71632)
+  * Patch for 'dot-stuffing' bug (Closes: #72348)
+  * Americanised spelling cleanup
+
+ -- Matt Ryan <matt@banana.org.uk>  Fri, 29 Sep 2000 15:22:44 +0100
+
+ssmtp (2.38-8) unstable; urgency=low
+
+  * Patch to fix reference to pointer which has been freed (Closes: #71245)
+
+ -- Matt Ryan <matt@banana.org.uk>  Sun, 10 Sep 2000 10:51:48 +0100
+
+ssmtp (2.38-7) unstable; urgency=low
+
+  * Added extended and reworded descriptions for debconf (Closes: #70733)
+
+ -- Matt Ryan <matt@banana.org.uk>  Sat,  2 Sep 2000 12:46:28 +0100
+
+ssmtp (2.38-6) unstable; urgency=low
+
+  * Fixed problem with timezone offset (Closes: #67385)
+  * Fixes uncompressed manpages (Closes: #67606)
+  * Fixes broken address parsing (Closes: #69759)
+  * Fixed config file option FromLineOverride missing from debconf
+    (Closes: #65195)
+
+ -- Matt Ryan <matt@banana.org.uk>  Tue, 29 Aug 2000 11:37:12 +0100
+
+ssmtp (2.38-5) unstable; urgency=low
+
+  * Added patch to fixed problems when using "FromLineOverride=yes"
+    (Closes: #64724)
+
+ -- Matt Ryan <matt@banana.org.uk>  Thu,  1 Jun 2000 20:16:40 +0100
+
+ssmtp (2.38-4) unstable; urgency=low
+
+  * Changed debian/rules to allow build on other architectures (Closes: #63896)
+
+ -- Matt Ryan <matt@banana.org.uk>  Thu,  1 Jun 2000 20:04:55 +0100
+
+ssmtp (2.38-3) unstable; urgency=high
+
+  * Added patch from Joel Rosdahl to accept mail addresses that cross <NL>
+    boundaries (Closes: #61206)
+  * Added fix for stripping of last character in messages when no <NL> is
+    present (Closes: #63481)
+  * Added fix to append rewrite domain or hostname when missing from address
+    (Closes: #63447)
+
+ -- Matt Ryan <matt@banana.org.uk>  Fri,  5 May 2000 17:20:43 +0100
+
+ssmtp (2.38-2) unstable; urgency=high
+
+  * New maintainer, added debconf support.
+
+ -- Matt Ryan <matt@banana.org.uk>  Sat,  4 Mar 2000 15:26:22 +0000
+
+ssmtp (2.38-1) unstable; urgency=high
+
+  * New upstream version (closes: #58863).
+
+ -- Hugo Haas <hugo@debian.org>  Thu, 24 Feb 2000 09:25:32 -0500
+
+ssmtp (2.37-1) unstable; urgency=low
+
+  * New upstream version (closes: #54817). 
+
+ -- Hugo Haas <hugo@debian.org>  Sun, 20 Feb 2000 22:37:20 -0500
+
+ssmtp (2.36-1) unstable; urgency=low
+
+  * New upstream release: option -f works as expected (closes: #53313). 
+
+ -- Hugo Haas <hugo@debian.org>  Sat,  5 Feb 2000 15:10:43 -0500
+
+ssmtp (2.35-1) unstable; urgency=low
+
+  * New upstream release: patch from Michael Luxton for per-user mailhub
+    specification in the revaliases file.
+  * Pointing to the right location of the GPL license.
+
+ -- Hugo Haas <hugo@debian.org>  Sun, 16 Jan 2000 13:56:04 -0500
+
+ssmtp (2.34-1) unstable; urgency=low
+
+  * Support for plaintext (base64) login authorization by Grant Edwards
+    <grante@comtrol.com>.
+  * Fix for buffer offerflow problems by Andreas Trottmann
+    <andreas.trottmann@werft22.com>.
+
+ -- Hugo Haas <hugo@debian.org>  Sun, 14 Nov 1999 23:03:25 -0500
+
 ssmtp (2.33-1) unstable; urgency=low
 
   * New upstream version, closes: bug #38795.
 
- -- Hugo Haas <hugo@debian.org>  Sun, 13 Jun 1999 19:22:24 -0400
+ -- Hugo Haas <hugo@debian.org>  Sun, 14 Nov 1999 23:03:03 -0500
 
 ssmtp (2.32-2) unstable; urgency=low
 
@@ -218,8 +499,3 @@ ssmtp (2.0-1) unstable; urgency=low
   * Initial Release.
 
  -- Christoph Lameter <clameter@debian.org>  Thu, 22 May 1997 22:18:24 -0700
-
-Local variables:
-mode: debian-changelog
-add-log-mailing-address: "hugo@debian.org"
-End:

@@ -17,4 +17,4 @@
  ssmtp_plm.tex		and its source (outdated)		| of sSMTP
  string_ext.c		some useful functions
  string_ext.h		and their headers
- debian/		directory for the debianization
+ debian/		directory for the debianisation

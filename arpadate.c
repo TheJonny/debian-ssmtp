@@ -2,6 +2,8 @@
  *  arpadate.c - get_arpadate() is a function returning the date in the
  *               ARPANET format (see RFC822 and RFC1123)
  *  Copyright (C) 1998 Hugo Haas
+ *  
+ *  Inspired by smail source code by Ronald S. Karr and Landon Curt Noll
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

@@ -1,0 +1,7079 @@
+head	2.54;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+2.54
+date	2002.04.01.12.59.24;	author matt;	state Exp;
+branches;
+next	2.53;
+
+2.53
+date	2002.03.29.14.43.26;	author matt;	state Exp;
+branches;
+next	2.52;
+
+2.52
+date	2002.02.10.21.58.26;	author matt;	state Exp;
+branches;
+next	2.51;
+
+2.51
+date	2002.02.10.21.03.43;	author matt;	state Exp;
+branches;
+next	2.50;
+
+2.50
+date	2002.02.10.19.33.10;	author matt;	state Exp;
+branches;
+next	2.49;
+
+2.49
+date	2002.02.10.18.33.15;	author matt;	state Exp;
+branches;
+next	2.48;
+
+2.48
+date	2001.11.02.10.57.37;	author matt;	state Exp;
+branches;
+next	2.47;
+
+2.47
+date	2001.11.02.10.06.24;	author matt;	state Exp;
+branches;
+next	2.46;
+
+2.46
+date	2001.10.17.15.22.34;	author matt;	state Exp;
+branches;
+next	2.45;
+
+2.45
+date	2001.10.15.18.42.07;	author matt;	state Exp;
+branches;
+next	2.44;
+
+2.44
+date	2001.08.10.15.23.09;	author matt;	state Exp;
+branches;
+next	2.43;
+
+2.43
+date	2001.07.30.11.44.57;	author matt;	state Exp;
+branches;
+next	2.42;
+
+2.42
+date	2001.07.21.12.00.05;	author matt;	state Exp;
+branches;
+next	2.41;
+
+2.41
+date	2001.07.18.17.31.27;	author matt;	state Exp;
+branches;
+next	2.40;
+
+2.40
+date	2001.07.18.17.16.52;	author matt;	state Exp;
+branches
+	2.40.0.1
+	2.40.1.1;
+next	1.11;
+
+1.11
+date	2001.07.18.16.09.05;	author matt;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2001.07.06.17.39.45;	author matt;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2001.05.24.12.11.54;	author matt;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2001.04.16.12.07.45;	author matt;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2001.03.19.12.47.00;	author matt;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2000.09.29.14.24.54;	author matt;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2000.09.10.09.50.04;	author matt;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2000.09.10.09.49.48;	author matt;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2000.06.01.19.18.41;	author matt;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2000.05.05.17.15.44;	author matt;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2000.05.05.17.01.29;	author matt;	state Exp;
+branches;
+next	;
+
+2.40.0.1
+date	2001.07.18.17.38.49;	author matt;	state Exp;
+branches;
+next	;
+
+2.40.1.1
+date	2001.07.18.17.33.41;	author matt;	state Exp;
+branches;
+next	;
+
+
+desc
+@Simple MTA
+@
+
+
+2.54
+log
+@Removed unneeded debug
+@
+text
+@/*
+
+ $Id: main.c,v 2.53 2002/03/29 14:43:26 matt Exp matt $
+
+ sSMTP -- send messages via SMTP to a mailhub for local delivery or forwarding.
+ This program is used in place of /usr/sbin/sendmail, called by "mail" (et all).
+ sSMTP does a selected subset of sendmail's standard tasks (including exactly
+ one rewriting task), and explains if you ask it to do something it can't. It
+ then sends the mail to the mailhub via an SMTP connection. Believe it or not,
+ this is nothing but a filter
+
+ See COPYRIGHT for the license
+
+*/
+#include <sys/param.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <syslog.h>
+#include <signal.h>
+#include <setjmp.h>
+#include <string.h>
+#include "ssmtp.h"
+
+char *prog_name = (char)NULL;
+
+jmp_buf TimeoutJmpBuf;		/* Timeout waiting for input from network. */
+
+rcpt_t RCPT_list, *rt;
+headers_t headers, *ht;
+
+bool_t SEEN_from = False;
+#ifdef HASTO_OPTION
+bool_t SEEN_to = False;
+#endif
+bool_t SEEN_date = False;
+
+bool_t UseTLS = False;		/* Use SSL to transfer mail to HUB */
+bool_t UseTLSCert = False;	/* Use a certificate to transfer SSL mail */
+char *TLSCert = "/etc/ssl/certs/ssmtp.pem";	/* Default Certificate */ 
+
+char *full_from = (char)NULL;	/* Use this as the From: address */
+char *full_name;
+
+/* Current date in RFC format. */
+#define ARPADATE_LENGTH 32
+char arpa_date[ARPADATE_LENGTH];
+
+extern bool_t do_rewrite;
+extern bool_t minus_t;
+
+extern char *rewrite_domain;
+extern char host_name[];
+extern char *mail_from;
+extern char *mail_hub;
+extern char *auth_user;
+extern char *auth_pass;
+extern char *minus_F;
+
+extern int smtp_port;
+extern int log_level;
+
+
+#ifdef INET6
+extern int protocolFamily;	/* protocol family which used in SMTP connection */
+#endif
+
+/*
+ADDR_parse() -- parse <user@@domain.com> from full email address
+*/
+char *ADDR_parse(char *str)
+{
+	char *p, *q, *r;
+
+#if 0
+	(void)fprintf(stderr, "*** ADDR_parse(): str = [%s]\n", str);
+#endif
+
+	if((p = strdup(str)) == (char)NULL) {
+		die("ADDR_parse() -- strdup() failed");
+	}
+
+	if((q = strchr(p, '<'))) {
+		r = ++q;
+		while(*q && (*q != '>')) q++;
+		*q = (char)NULL;
+	}
+	else {
+		q = STRIP__leading_space(p);
+		if(*q == '(') {
+			while((*q++ != ')'));
+		}
+		r = STRIP__leading_space(q);
+#if 0
+		(void)fprintf(stderr, "*** ADDR_parse(): r = [%s]\n", r);
+#endif
+
+		q = STRIP__trailing_space(r);
+		if(*q == ')') {
+			while((*--q != '('));
+			*q = (char)NULL;
+		}
+		(void)STRIP__trailing_space(r);
+	}
+#if 0
+	(void)fprintf(stderr, "*** ADDR_parse(): r = [%s]\n", r);
+#endif
+
+	return(r);
+}
+
+/*
+append_domain() -- Fix up address with @@domain.com
+*/
+char *append_domain(char *str)
+{
+	char buf[(BUF_SZ + 1)];
+
+	if(strchr(str, '@@') == (char)NULL) {
+		if(snprintf(buf, BUF_SZ, "%s@@%s", str,
+#ifdef REWRITE_DOMAIN
+			do_rewrite == True ? rewrite_domain : host_name
+#else
+			host_name
+#endif
+			) == -1) {
+				die("append_domain() -- snprintf() failed");
+		}
+		return(strdup(buf));
+	}
+
+	return(str);
+}
+
+/*
+handler() -- a "normal" non-portable version of an alarm handler
+      Alas, setting a flag and returning is not fully functional in
+      BSD: system calls don't fail when reading from a ``slow'' device
+      like a socket. So we longjump instead, which is erronious on
+      a small number of machines and ill-defined in the language
+*/
+void handler(void)
+{
+	extern jmp_buf TimeoutJmpBuf;
+
+	longjmp(TimeoutJmpBuf, (int)1);
+}
+
+/*
+standardise() -- trim off '\n's, double leading dots
+*/
+void standardise(char *str)
+{
+	size_t sl;
+	char *p;
+
+	if((p = strchr(str, '\n'))) {
+		*p = (char)NULL;
+	}
+
+	/* Any line beginning with a dot has an additional dot inserted;
+	not just a line consisting solely of a dot.  Thus we have to
+	slide the buffer down one.  */
+	sl = strlen(str);
+
+	if(*str == '.') {
+		if((sl + 2) > BUF_SZ) {
+			die("standardise() -- Buffer overflow");
+		}
+		(void)memmove((str + 1), str, (sl + 1));  /* Copy trailing \0 */
+
+		*str = '.';
+	}
+}
+
+/*
+revaliases() -- parse the reverse alias file, fix globals to use any entry for sender
+*/
+void revaliases(struct passwd *pw)
+{
+	char buf[(BUF_SZ + 1)], *p, *r;
+	FILE *fp;
+
+	/* Try to open the reverse aliases file */
+	if((fp = fopen(REVALIASES_FILE, "r"))) {
+		/* Search if a reverse alias is definied for the sender */
+		while(fgets(buf, sizeof(buf), fp)) {
+			/* Make comments invisible. */
+			if((p = strchr(buf, '#'))) {
+				*p = (char)NULL;
+			}
+
+			/* Ignore malformed lines and comments. */
+			if(strchr(buf, ':') == (char)NULL) {
+				continue;
+			}
+
+			/* Parse the alias */
+			if(((p = strtok(buf, ":"))) && !strcmp(p, pw->pw_name)) {
+				if((p = strtok(NULL, ": \t\r\n"))) {
+					mail_from = strdup(p);
+					if(mail_from == (char *)NULL) {
+						die("X() -- strdup() failed");
+					}
+				}
+
+				if((p = strtok(NULL, " \t\r\n:"))) {
+					mail_hub = strdup(p);
+					if(mail_from == (char *)NULL) {
+						die("X() -- strdup() failed");
+					}
+
+					if((r = strtok(NULL, " \t\r\n:"))) {
+						smtp_port = atoi(r);
+					}
+
+					if(log_level > 0) {
+						log_event(LOG_INFO, "Set MailHub=\"%s\"\n", mail_hub);
+						log_event(LOG_INFO, "via SMTP Port Number=\"%d\"\n", smtp_port);
+					}
+				}
+			}
+		}
+	}
+
+	fclose(fp);
+}
+
+
+/*
+ssmtp() -- send the message (exactly one) from stdin to the mailhub SMTP port
+*/
+int ssmtp(char *argv[])
+{
+	char buf[(BUF_SZ + 1)], *p, *sd;
+	struct passwd *pw;
+	int i, sock;
+	uid_t uid;
+
+	uid = getuid();
+	if((pw = getpwuid(uid)) == (struct passwd *)NULL) {
+		die("Could not find password entry for UID %d", uid);
+	}
+	get_arpadate(arpa_date);
+
+	if(read_config() == False) {
+		log_event(LOG_INFO, "No ssmtp.conf in %s", SSMTPCONFDIR);
+	}
+
+	if((p = strtok(pw->pw_gecos, ";,"))) {
+		if((full_name = strdup(p)) == (char *)NULL) {
+			die("ssmtp() -- strdup() failed");
+		}
+	}
+	revaliases(pw);
+
+	/* revaliases() may have defined this */
+	if(mail_from == (char *)NULL) {
+		mail_from = append_domain(pw->pw_name);
+	}
+
+	/* Parse headers */
+	ht = &headers;
+	HEADER_parse(stdin);
+
+	ht = &headers; rt = &RCPT_list;
+	while(ht->next) {
+		HEADER_record(ht->string);
+		ht = ht->next;
+	}
+	/* Finished header processing */
+
+	FROM_format();
+
+	/* Now to the delivery of the message */
+	(void)signal(SIGALRM, (void(*)())handler);	/* Catch SIGALRM */
+	(void)alarm((unsigned) MAXWAIT);		/* Set initial timer */
+	if(setjmp(TimeoutJmpBuf) != 0) {
+		/* Then the timer has gone off and we bail out. */
+		die("Connection lost in middle of processing");
+	}
+
+	if((sock = SMTP_open(mail_hub, smtp_port)) == -1) {
+		die("Cannot open %s:%d", mail_hub, smtp_port);
+	}
+	else if(SMTP_OK(sock, buf) == False) {
+		die("Did not get initial OK message from SMTP server");
+	}
+
+	/* If user supplied username and password, then try ELHO */
+	/* do not really know if this is required or not...      */
+	if(auth_user) {
+		SMTP_write(sock, "EHLO %s", host_name);
+	}
+	else {
+		SMTP_write(sock, "HELO %s", host_name);
+	}
+	(void)alarm((unsigned) MEDWAIT);
+
+	if(SMTP_OK(sock, buf) == False) {
+		die("%s (%s)", buf, host_name);
+	}
+
+	/* Try to log in if username was supplied */
+	if(auth_user) {
+		memset(buf, 0, sizeof(buf));
+		to64frombits(buf, auth_user, strlen(auth_user));
+		SMTP_write(sock, "AUTH LOGIN %s", buf);
+
+		(void)alarm((unsigned) MEDWAIT);
+		if(SMTP_read(sock, buf) != 3) {
+			die("Server didn't accept AUTH LOGIN (%s)", buf);
+		}
+		memset(buf, 0, sizeof(buf));
+
+		to64frombits(buf, auth_pass, strlen(auth_pass));
+		SMTP_write(sock, "%s", buf);
+		(void)alarm((unsigned) MEDWAIT);
+
+		if(SMTP_OK(sock, buf) == False) {
+			die("Authorization failed (%s)", buf);
+		}
+	}
+
+	/* Send "MAIL FROM:" line */
+	SMTP_write(sock, "MAIL FROM:<%s>", mail_from);
+
+	(void)alarm((unsigned) MEDWAIT);
+
+	if(SMTP_OK(sock, buf) == NO) {
+		die("%s", buf);
+	}
+
+	/* Send all the To: adresses. */
+	/* Either we're using the -t option, or we're using the arguments */
+	if(minus_t) {
+		if(RCPT_list.next == (rcpt_t *)NULL) {
+			die("No recipients specified although -t option used");
+		}
+		rt = &RCPT_list;
+
+		while(rt->next) {
+			sd = strdup(RCPT_remap(rt->string));
+			if(sd == (char *)NULL) {
+				die("X() -- strdup() failed");
+			}
+			SMTP_write(sock, "RCPT TO:<%s>", sd);
+
+			(void)alarm((unsigned)MEDWAIT);
+
+			if(SMTP_OK(sock, buf) == NO) {
+				die("RCPT TO:<%s> (%s)", sd, buf);
+			}
+			free(sd);
+
+			rt = rt->next;
+		}
+	}
+	else {
+		for(i = 1; argv[i] != NULL; i++) {
+			p = strtok(argv[i], ",");
+			while(p) {
+				/* RFC822 Address  -> "foo@@bar" */
+				sd = strdup(RCPT_remap(ADDR_parse(p)));
+				if(sd == (char *)NULL) {
+					die("X() -- strdup() failed");
+				}
+				SMTP_write(sock, "RCPT TO:<%s>", sd);
+
+				(void)alarm((unsigned) MEDWAIT);
+
+				if(SMTP_OK(sock, buf) == NO) {
+					die("RCPT TO:<%s> (%s)", sd, buf);
+				}
+				free(sd);
+
+				p = strtok(NULL, ",");
+			}
+		}
+	}
+
+	/* Send DATA */
+	SMTP_write(sock, "DATA");
+
+	(void)alarm((unsigned) MEDWAIT);
+
+	if(SMTP_read(sock, buf) != 3) {
+		/* Oops, we were expecting "354 send your data" */
+		die("%s", buf);
+	}
+
+	SMTP_write(sock,
+		"Received: by %s (sSMTP sendmail emulation); %s",
+		host_name, arpa_date);
+
+	if(SEEN_from == False) {
+		SMTP_write(sock, "From: %s", full_from);
+	}
+
+	if(SEEN_date == False) {
+		SMTP_write(sock, "Date: %s", arpa_date);
+	}
+
+#ifdef HASTO_OPTION
+	if(SEEN_to == False) {
+		SMTP_write(sock, "To: postmaster");
+	}
+#endif
+
+	ht = &headers;
+	while(ht->next) {
+/*
+		if(strncpy(buf, ht->string, BUF_SZ) == (char *)NULL) {
+			die("ssmtp() -- strncpy() failed");
+		}
+		standardise(buf);
+*/
+
+		SMTP_write(sock, ht->string);
+		ht = ht->next;
+	}
+
+	(void)alarm((unsigned) MEDWAIT);
+
+	/* End of headers, start body. */
+	SMTP_write(sock, "");
+
+	while(fgets(buf, sizeof(buf), stdin)) {
+		/* Trim off \n, double leading .'s */
+		standardise(buf);
+
+		SMTP_write(sock, "%s", buf);
+
+		(void)alarm((unsigned) MEDWAIT);
+	}
+	/* End of body */
+
+	SMTP_write(sock, ".");
+	(void)alarm((unsigned) MAXWAIT);
+
+	if(SMTP_OK(sock, buf) == NO) {
+		die("%s", buf);
+	}
+
+	/* Close conection. */
+	(void)signal(SIGALRM, SIG_IGN);
+
+	SMTP_write(sock, "QUIT");
+	(void)SMTP_OK(sock, buf);
+	(void)close(sock);
+
+	log_event(LOG_INFO,
+		"Sent mail for %s (%s)", FROM_strip(mail_from), buf);
+
+	return(0);
+}
+
+/*
+main() -- make the program behave like sendmail, then call ssmtp
+*/
+int main(int argc, char **argv)
+{
+	char **new_argv;
+
+	/* Try to be bulletproof :-) */
+	(void)signal(SIGHUP, SIG_IGN);
+	(void)signal(SIGINT, SIG_IGN);
+	(void)signal(SIGTTIN, SIG_IGN);
+	(void)signal(SIGTTOU, SIG_IGN);
+
+	/* Set the globals. */
+	prog_name = basename(argv[0]);
+
+	if(gethostname(host_name, MAXHOSTNAMELEN) == -1) {
+		die("Cannot get the name of this machine");
+	}
+	new_argv = parse_options(argc, argv);
+
+	exit(ssmtp(new_argv));
+}
+@
+
+
+2.53
+log
+@Moved location of FROM_format() call
+@
+text
+@d3 1
+a3 1
+ $Id: main.c,v 2.52 2002/02/10 21:58:26 matt Exp $
+a417 3
+#if 0
+		(void)fprintf(stderr, "*** [%s] ***\n", ht->string);
+#endif
+@
+
+
+2.52
+log
+@Added IPv6 code from Jun-ya Kato
+@
+text
+@d3 1
+a3 1
+ $Id: main.c,v 2.51 2002/02/10 21:03:43 matt Exp matt $
+a259 1
+	FROM_format();
+d271 2
+@
+
+
+2.51
+log
+@Moved FROM_rewrite(), removed unecessary definitions and removed debug code
+@
+text
+@d3 1
+a3 1
+ $Id: main.c,v 2.50 2002/02/10 19:33:10 matt Exp matt $
+d62 4
+@
+
+
+2.50
+log
+@Removed more functions to their own source files
+@
+text
+@d3 1
+a3 1
+ $Id: main.c,v 2.49 2002/02/10 18:33:15 matt Exp matt $
+d25 1
+a25 1
+char *full_from = (char)NULL;	/* Use this as the From: address */
+d41 3
+a53 1
+extern char *full_name;
+d57 1
+a263 3
+/*
+		(void)fprintf(stderr, "*** [%s] ***\n", ht->string);
+*/
+a264 3
+#ifdef REWRITE_DOMAIN
+		FROM_rewrite(buf, BUF_SZ);
+#endif
+@
+
+
+2.49
+log
+@Breakout of functions to seperate files and clean-up of variable declarations
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.48 2001/11/02 10:57:37 matt Exp $
+a14 1
+
+d24 2
+a25 2
+char *prog_name = NULL;		/* It's name. */
+char *full_from = NULL;		/* Use this as the From: address */
+a45 1
+extern bool_t FROM_override;
+a46 1
+extern bool_t minus_v;
+a50 1
+extern char *root_user;
+a52 2
+extern char *minus_f;
+extern char *minus_F;
+d71 1
+a71 1
+	if((p = strdup(str)) == NULL) {
+a73 1
+	q = p;
+d75 1
+a75 1
+	if((q = strchr(str, '<'))) {
+d81 3
+a83 22
+		r = q = p;
+		while(*q) {
+#if 0
+			(void)fprintf(stderr,
+				"*** ADDR_parse(): *q = [%c]\n", *q);
+#endif
+			switch(*q) {
+/*
+				case '\n':
+				case '\t':
+						p[i] = ' ';
+*/
+
+				case '(':
+						while(*q && (*q != ')')) q++;
+						continue;
+/*
+				case '"':
+						while(*q && (*q != '"')) q++;
+*/
+			}
+			q++;
+d85 1
+a85 1
+		*q = (char)NULL;
+d90 1
+a90 3
+		r = STRIP__leading_space(r);
+		STRIP__trailing_space(r);
+
+a91 1
+		(void)fprintf(stderr, "*** ADDR_parse(): *q = [%c]\n", *q);
+d95 1
+d97 1
+a97 1
+#if 1
+d111 1
+a111 1
+	if(strchr(str, '@@') == NULL) {
+a126 74
+/* 
+FROM_strip() -- transforms "Name <login@@host>" into "login@@host" or "login@@host (Real name)"
+*/
+char *FROM_strip(char *str)
+{
+	char *p, *q;
+
+	if(strncmp("From: ", str, 6) == 0) {
+		str += 6;
+	}
+
+	/* Remove the real name if necessary - just send the address */
+	if((p = ADDR_parse(str)) == (char *)NULL) {
+		die("FROM_strip() -- ADDR_parse() failed");
+	}
+
+	if((q = strdup(p)) == NULL) {
+		die("FROM_strip() -- strdup() failed");
+	}
+	free(p);
+
+	return(q);
+}
+
+#ifdef REWRITE_DOMAIN
+/*
+FROM_rewrite() -- rewrite From: - Evil, nasty, immoral header-rewrite code 8-)
+*/
+void FROM_rewrite(char *buf, int sz)
+{
+/*
+	if(FROM_override) return;
+*/
+
+	if(strncasecmp(buf, "From:", 5) == 0) {
+#if 1
+		(void)fprintf(stderr, "*** FROM_rewrite(): buf = [%s]\n", buf);
+#endif
+		if(snprintf(buf, sz, "From: %s", full_from) == -1) {
+			die("FROM_rewrite() -- snprintf() failed");
+		}
+	}
+	return;
+}
+#endif
+
+/*
+FROM_format() -- 
+*/
+void FROM_format(void)
+{
+	char buf[(BUF_SZ + 1)];
+
+	if(FROM_override) {
+		if(minus_f) {
+			mail_from = append_domain(minus_f);
+		}
+
+		if(minus_F) {
+			full_name = minus_F;
+		}
+	}
+
+	if(full_name) {
+		if(snprintf(buf, BUF_SZ, "\"%s\" <%s>", full_name, mail_from) == -1) {
+			die("FROM_format() -- snprintf() failed");
+		}
+		full_from = strdup(buf);
+	}
+	else {
+		full_from = mail_from;
+	}
+}
+
+d186 1
+a186 1
+			if(strchr(buf, ':') == NULL) {
+d194 3
+d201 3
+d233 1
+a233 1
+	if((pw = getpwuid(uid)) == NULL) {
+d243 3
+a245 1
+		full_name = strdup(p);
+d250 1
+a250 1
+	if(mail_from == NULL) {
+d273 1
+a273 1
+	(void)signal(SIGALRM, (void(*)()) handler);	/* Catch SIGALRM */
+d341 3
+d362 3
+d410 1
+a410 1
+		if(strncpy(buf, ht->string, BUF_SZ) == NULL) {
+a456 26
+
+
+/*
+basename() --
+*/
+char *basename(char *path)
+{
+	static char buf[MAXPATHLEN +1];
+	char *ptr;
+
+	ptr = strrchr(path, '/');
+	if(ptr) {
+		if(strncpy(buf, ++ptr, MAXPATHLEN) == NULL) {
+			die("basename() -- strncpy() failed");
+		}
+	}
+	else {
+		if(strncpy(buf, path, MAXPATHLEN) == NULL) {
+			die("basename() -- strncpy() failed");
+		}
+	}
+	buf[MAXPATHLEN] = (char)NULL;
+
+	return(buf);
+}
+
+@
+
+
+2.48
+log
+@Fixed buffer overrun in header code
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.47 2001/11/02 10:06:24 matt Exp matt $
+a18 3
+#include <stdio.h>
+#include <pwd.h>
+
+a22 2
+#include <ctype.h>
+
+d25 2
+a26 20
+#ifndef MAILHUB
+#define MAILHUB "mailhost"	/* A surprisingly useful default. */
+#endif
+char *ProgName = NULL;		/* It's name. */
+char *MailHub = MAILHUB;	/* The place to send the mail. */
+int smtp_port = 25;	        /* SMTP port number */
+char HostName[MAXHOSTNAMELEN];	/* Our name, unless overridden. */
+#ifdef REWRITE_DOMAIN
+char *RewriteDomain = "localhost";	/* Place to claim to be. */
+Bool UseRD = False;			/* Do we have to rewrite the domain? */
+#endif
+Bool from_override = False;		/* Should we use same address in the
+				   from-line of the envelope as in the
+				   From:-line? */
+char *msg_from = NULL;		/* From:-line from message */
+char *mail_from = NULL;		/* From:-line we actually use */
+char *minus_f = NULL;		/* Content of the From: field if specified with the -f option */
+char *minus_F = NULL;		/* Same for -F option */
+char *full_name = NULL;		/* Sending user's full name */
+char *Root = "postmaster";	/* Person to send root's mail to. */
+a27 2
+Bool minus_v = False;		/* Tell the user what's happening. */
+Bool minus_t = False;		/* Was a T option given? */
+d29 4
+a32 3
+char *RCPT_list[100];
+char **rec = RCPT_list;
+static Bool from_seen = False,
+d34 1
+a34 1
+to_seen = False,
+d36 5
+a40 1
+date_seen = False;
+d42 3
+a44 5
+#ifdef DEBUG
+int log_level = 1;
+#else
+int log_level = 0;
+#endif
+d46 4
+a49 2
+char *authUsername = NULL;      /* user name for SMTP authentication */
+char *authPassword = NULL;      /* password for SMTP authentication */
+d51 10
+a60 1
+void *headerp;			/* Pointer to beginning of headers */
+d62 2
+a63 3
+Bool UseTLS = False;		/* Use SSL to transfer mail to HUB */
+Bool UseTLSCert = False;		/* Use a certificate to transfer SSL mail */
+char *TLSCert = "/etc/ssl/certs/ssmtp.pem";	/* Default Certificate */ 
+a64 3
+/* Current date in RFC format. */
+#define ARPADATE_LENGTH 32
+char date_str[ARPADATE_LENGTH];
+d67 1
+a67 1
+get_addr() -- parse user@@domain,com from email address
+d69 1
+a69 1
+void get_addr(char *str, char *buf, size_t sz)
+d71 5
+a75 2
+	char *p, *sd;
+	size_t i;
+d77 9
+a85 7
+	i = 0;
+	if((p = strchr(str, '<'))) {
+		p++;
+		while(*p && (*p != '>') && (i < sz)) {
+			buf[i++] = *p++;
+		}
+		buf[i] = (char)NULL;
+d88 8
+a95 3
+		p = str;
+		while(*p && (i < sz)) {
+			switch(*p) {
+d98 2
+a99 1
+						buf[i] = ' ';
+d102 1
+a102 2
+						while(*p && (*p != ')')) p++;
+						p++;
+d106 1
+a106 3
+						while(*p && (*p != '"')) p++;
+						p++;
+						continue;
+a107 2
+				default:
+						buf[i] = *p++;
+d109 1
+a109 1
+			i++;
+d111 4
+a114 28
+		buf[i] = (char)NULL;
+
+		/* Strip leading spaces */
+		if((sd = strdup(buf)) == NULL) {
+			die("strup() failed in get_addr()");
+		}
+		while(*sd && isspace(*sd)) sd++;
+
+		if(strncpy(buf, sd, sz) == NULL) {
+			die("strncpy() failed in get_addr()");
+		}
+
+		/* Strip trailing spaces */
+		i = strlen(buf);
+		while(i-- > 0) {
+			if(isspace(buf[i]) == 0) break;
+		}
+		buf[(i + 1)] = (char)NULL;
+	}
+}
+
+/*
+RCPT_record() -- Record the email RCPT addresses
+*/
+void RCPT_record(char *str)
+{
+	char buf[(BUF_SZ + 1)], *p;
+	Bool in_quotes = False;
+d116 2
+a117 35
+	/* Convert <CR> and <TAB> to space */
+	p = str;
+	while(*p) {
+		if((*p == '\n') || (*p == '\t')) {
+			*p = ' ';
+		}
+		p++;
+	}
+	p = str;
+
+	while(*p) {
+		if(*p == '"') {
+			if(in_quotes == False) {
+				in_quotes = True;
+			}
+			else {
+				in_quotes = False;
+			}
+		}
+
+		if(((*p == ',') || (*(p + 1) == (char)NULL)) && (!in_quotes)) {
+			if(*(p + 1) != (char)NULL) {
+				*p = (char)NULL;
+			}
+
+			while(*str && isspace(*str)) str++;
+			get_addr(str, buf, BUF_SZ);
+
+			str = (p + 1);
+
+			if(strlen(buf) > 0) {
+				if((rec - RCPT_list) > (100 - 1)) {
+					die("Too many recipients (>= 100)");
+				}
+			}
+d119 4
+a122 3
+			if((*rec++ = strdup(buf)) == NULL) {
+				die("strdup() failed in X()");
+			}
+a123 15
+		p++;
+	}
+}
+
+/*
+record_headers() -- note which ones we've seen
+*/
+void record_headers(char *str)
+{
+	if(strncasecmp(str, "From:", 5) == 0) {
+		from_seen = True;
+	}
+#ifdef HASTO_OPTION
+	else if(strncasecmp(str, "To:" ,3) == 0) {
+		to_seen = True;
+d125 2
+a127 3
+	else if(strncasecmp(str, "Date:", 5) == 0) {
+		date_seen = True;
+	}
+d129 1
+a129 12
+	if(minus_t) {
+		/* Need to figure out recipients from the e-mail */
+		if(strncasecmp(str, "To:", 3) == 0) {
+			RCPT_record((str + 4));
+		}
+		else if(strncasecmp(str, "Bcc:", 4) == 0) {
+			RCPT_record((str + 5));
+		}
+		else if(strncasecmp(str, "CC:", 3) == 0) {
+			RCPT_record((str + 4));
+		}
+	}
+d133 1
+a133 1
+append_domain() -- Fix up address with @@domain.name
+d137 1
+a137 2
+#ifdef REWRITE_DOMAIN
+	static char buf[(BUF_SZ + 1)];
+d141 7
+a147 2
+			(UseRD == True) ? RewriteDomain : HostName) == -1) {
+			die("Buffer error in append_domain()");
+d149 1
+a149 1
+		return(buf);
+a150 1
+#endif
+d156 1
+a156 1
+strip_from() -- transforms "Name <login@@host>" into "login@@host" or "login@@host (Real name)"
+d158 1
+a158 1
+char *strip_from(char *str)
+d160 1
+a160 1
+	char buf[(BUF_SZ + 1)], *sd;
+d167 3
+a169 1
+	get_addr(str, buf, BUF_SZ);
+d171 2
+a172 2
+	if((sd = strdup(buf)) == NULL) {
+		die("strdup() failed in strip_from()");
+d174 3
+a176 1
+	return(sd);
+d181 1
+a181 2
+fix_from() -- replace whole From: header with standardised pattern
+		Evil, nasty, immoral header-rewriting code (:-))
+d183 1
+a183 1
+void fix_from(char *buf, int sz)
+d185 4
+d190 5
+a194 9
+		if(from_override) {
+			if((msg_from = strdup(buf)) == NULL) {
+				die("strdup() failed in fix_from()");
+			}
+		}
+		else {
+			if(snprintf(buf, sz, "From: %s", mail_from) == -1) {
+				die("Buffer error in fix_from()");
+			}
+d197 1
+d202 1
+a202 4
+RCPT_remap() -- alias systems-level users to the person who
+	reads their mail.  This is variously the owner of a workstation,
+	the sysadmin of a group of stations and the postmaster otherwise.
+	We don't just mail stuff off to root on the mailhub (:-))
+d204 1
+a204 1
+char *RCPT_remap(char *str)
+d206 6
+a211 1
+	struct passwd *pw;
+d213 3
+a215 7
+	if(strchr(str, '@@') ||
+		((pw = getpwnam(str)) == NULL) || (pw->pw_uid > MAXSYSUID)) {
+		/* It's not a local systems-level user */
+		return(append_domain(str));
+	}
+	else {
+		return(append_domain(Root));
+a216 9
+}
+
+/*
+do_from() -- generate a from line in standard format
+ ("Real Name <id@@site>" or "id@@site") based on local user and host names
+*/
+void do_from(struct passwd *pw)
+{
+	char buf[(BUF_SZ + 1)];
+d219 2
+a220 8
+		if(snprintf(buf, BUF_SZ, "%s <%s@@%s>", full_name, pw->pw_name,
+#ifdef REWRITE_DOMAIN
+			UseRD == True ? RewriteDomain : HostName
+#else
+			HostName
+#endif
+			) == -1) {
+				die("Buffer error in do_from()");
+d222 1
+d225 1
+a225 13
+		if(snprintf(buf, BUF_SZ, "%s@@%s", pw->pw_name,
+#ifdef REWRITE_DOMAIN
+			UseRD == True ? RewriteDomain : HostName
+#else
+			HostName
+#endif
+			) == -1) {
+				die("Buffer error in do_from()");
+		}
+	}
+
+	if((mail_from = strdup(buf)) == NULL) {
+		die("strdup() failed in X()");
+d230 1
+a230 1
+handler() -- a ``normal'' non-portable version of an alarm handler
+d262 1
+a262 1
+			die("Buffer overflow in standardise()");
+d271 1
+a271 1
+parse_config() -- parse config file, extract values of a few predefined variables
+d273 1
+a273 126
+void parse_config(FILE * fp)
+{
+	char buf[(BUF_SZ + 1)], *p, *q, *r;
+
+	while(fgets(buf, sizeof(buf), fp)) {
+		/* Make comments invisible. */
+		if((p = strchr(buf, '#'))) {
+			*p = (char)NULL;
+		}
+
+		/* Ignore malformed lines and comments. */
+		if(strchr(buf, '=') == NULL) continue;
+
+		/* Parse out keywords. */
+		if(((p = strtok(buf, "= \t\n")) != NULL) && ((q = strtok(NULL, "= \t\n:")) != NULL)) {
+			if(strcasecmp(p, "Root") == 0) {
+				if((Root = strdup(q)) == NULL) {
+					die("strdup() failed in parse_config()");
+				}
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set Root=\"%s\"\n", Root);
+				}
+			}
+			else if(strcasecmp(p, "MailHub") == 0) {
+				if((MailHub = strdup(q)) == NULL) {
+					die("strdup() failed in parse_config()");
+				}
+
+				if((r = strtok(NULL, "= \t\n:")) != NULL) {
+					smtp_port = atoi(r);
+				}
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set MailHub=\"%s\"\n", MailHub);
+					log_event(LOG_INFO, "Set RemotePort=\"%d\"\n", smtp_port);
+				}
+			}
+			else if(strcasecmp(p, "HostName") == 0) {
+				if(strncpy(HostName, q, MAXHOSTNAMELEN) == NULL) {
+					die("strncpy() failed in X()");
+				}
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set HostName=\"%s\"\n", HostName);
+				}
+			}
+#ifdef REWRITE_DOMAIN
+			else if(strcasecmp(p, "RewriteDomain") == 0) {
+				if((RewriteDomain = strdup(q)) == NULL) {
+					die("strdup() failed in parse_config()");
+				}
+
+				UseRD = True;
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set RewriteDomain=\"%s\"\n", RewriteDomain);
+				}
+			}
+#endif
+			else if(strcasecmp(p, "FromLineOverride") == 0) {
+				if(strcasecmp(q, "yes") == 0) {
+					from_override = True;
+				}
+				else {
+					from_override = False;
+				}
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set FromLineOverride=\"%s\"\n", from_override ? "True" : "False");
+				}
+			}
+			else if(strcasecmp(p, "RemotePort") == 0) {
+				smtp_port = atoi(q);
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set RemotePort=\"%d\"\n", smtp_port);
+				}
+			}
+#ifdef HAVE_SSL
+			else if(strcasecmp(p, "UseTLS") == 0) {
+				if(strcasecmp(q, "yes") == 0) {
+					UseTLS = True;
+				}
+				else {
+					UseTLS = False;
+				}
+
+				if(log_level > 0) { 
+					log_event(LOG_INFO, "Set UseTLS=\"%s\"\n", UseTLS ? "True" : "False");
+				}
+			}
+			else if(strcasecmp(p, "UseTLSCert") == 0) {
+				if(strcasecmp(q, "yes") == 0) {
+					UseTLSCert = True;
+				}
+				else {
+					UseTLSCert = False;
+				}
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set UseTLSCert=\"%s\"\n", UseTLSCert ? "True" : "False");
+				}
+			}
+			else if(strcasecmp(p, "TLSCert") == 0) {
+				if((TLSCert = strdup(q)) == NULL) {
+					die("strdup() failed in parse_config()");
+				}
+
+				if(log_level > 0) {
+					log_event(LOG_INFO, "Set TLSCert=\"%s\"\n", TLSCert);
+				}
+			}
+#endif
+			else {
+				log_event(LOG_INFO, "Unable to set %s=\"%s\"\n", p, q);
+			}
+		}
+	}
+
+	return;
+}
+
+/*
+* Config file access routines
+*/
+int read_config(void)
+d275 1
+a276 25
+	static char *locations[] =
+		{
+			CONFIGURATION_FILE,
+			NULL
+		};
+	char **lp;
+
+	for(lp = &locations[0]; *lp; lp++) {
+		if((fp = fopen(*lp, "r")) != NULL) {
+			parse_config(fp);
+			fclose(fp);
+			return(True);
+		}
+	}
+	return(False);
+}
+
+/*
+rev_aliases() -- parse the reverse alias file, fix globals to use any entry for sender
+*/
+void rev_aliases(struct passwd *pw)
+{
+	static char buffer[(BUF_SZ + 1)];
+	char buf[(BUF_SZ + 1)], *p, *r;
+	FILE *rev_file;
+d279 3
+a281 4
+	rev_file = fopen(REVALIASES_FILE, "r");
+	/* Search if a reverse alias is definied for the sender */
+	if(rev_file) {
+		while(fgets(buf, sizeof(buf), rev_file)) {
+d293 3
+a295 13
+			if(((p = strtok(buf, ":")) != NULL) && !strcmp(p, pw->pw_name)) {
+				p = strtok(NULL, ": \t\r\n");
+				if(p) {
+					if(full_name) {
+						(void)snprintf(buffer, BUF_SZ, "\"%s\" <%s>", full_name, p);
+					}
+					else {
+						(void)snprintf(buffer, BUF_SZ, "%s", p);
+					}
+
+					if((mail_from = strdup(buffer)) == NULL) {
+						die("strdup() failed in X()");
+					}
+a296 1
+				p = strtok(NULL, " \t\r\n:");
+d298 2
+a299 2
+				if(p) {
+					MailHub = strdup(p);
+d301 1
+a301 1
+					if((r = strtok(NULL, " \t\r\n:")) != NULL) {
+d306 1
+a306 1
+						log_event(LOG_INFO, "Set MailHub=\"%s\"\n", MailHub);
+d313 2
+a316 210
+/*
+doOptions() -- pull the options out of the command-line, process them (and special-case calls to mailq, etc), and return the rest
+*/
+char **doOptions(int argc, char *argv[])
+{
+	static char Version[] = "$Revision: 2.47 $";
+	static char *newArgV[MAXARGS];
+	int i, j, add, newArgC;
+
+	newArgV[0] = argv[0];
+	newArgC = 1;
+
+	if(strcmp(ProgName, "mailq") == 0) {
+		/* Someone wants to know the queue state... */
+		paq("mailq: Mail queue is empty\n");
+	}
+	else if(strcmp(ProgName, "newaliases") == 0) {
+		/* Someone wanted to recompile aliases. */
+		paq("newaliases: Aliases are not used in sSMTP\n");
+	}
+
+	i = 1;
+	while(i < argc) {
+		if(argv[i][0] != '-') {
+			newArgV[newArgC++] = argv[i++];
+			continue;
+		}
+		j = 0;
+
+		add = 1;
+		while(argv[i][++j] != (char)NULL) {
+			switch(argv[i][j]) {
+			case 'a':
+				switch(argv[i][++j]) {
+				case 'u':
+					if(!argv[i][j+1]) { 
+						authUsername = strdup(argv[i+1]);
+						add++;
+					}
+					else {
+						authUsername = strdup(argv[i]+j+1);
+					}
+					goto exit;
+
+				case 'p':
+					if(!argv[i][j+1]) { 
+						authPassword = strdup(argv[i+1]);
+						add++;
+					}
+					else {
+						authPassword = strdup(argv[i]+j+1);
+					}
+					goto exit;
+				}
+				goto exit;
+
+			case 'b':
+				switch(argv[i][++j]) {
+
+				case 'a':	/* ARPANET mode. */
+						paq("-ba is not supported by sSMTP\n");
+				case 'd':	/* Run as a daemon. */
+						paq("-bd is not supported by sSMTP\n");
+				case 'i':	/* Initialise aliases. */
+						paq("%s: Aliases are not used in sSMTP\n", ProgName);
+				case 'm':	/*  Default addr processing. */
+						continue;
+				case 'p':	/* Print mailqueue. */
+						paq("%s: Mail queue is empty\n", ProgName);
+				case 's':	/* Read SMTP from stdin. */
+						paq("-bs is not supported by sSMTP\n");
+				case 't':	/* Test mode. */
+						paq("-bt is meaningless to sSMTP\n");
+				case 'v':	/*  Verify names only. */
+						paq("-bv is meaningless to sSMTP\n");
+				case 'z':	/* Create  freeze file. */
+						paq("-bz is meaningless to sSMTP\n");
+				}
+
+			case 'C':	/* Configfile name. */
+					goto exit;
+			case 'd':	/* Debug */
+					log_level = 1;
+					minus_v = True;	/* Almost the same thing... */
+					continue;
+			case 'E':	/* insecure channel, don't trust userid. */
+					continue;
+			case 'R':
+				if(!argv[i][j+1]) {	/* amount of the message to be returned */
+					add++;
+					goto exit;
+				}
+				else {	/* Process queue for recipient */
+					continue;
+				}
+			case 'F':	/* Fullname of sender */
+				if(!argv[i][(j + 1)]) {
+					minus_F = strdup(argv[(i + 1)]);
+					add++;
+				}
+				else {
+					minus_F = strdup(argv[i]+j+1);
+				}
+				goto exit;
+			case 'f':	/* Set from/sender address. */
+			case 'r':	/* Obsolete -f flag. */
+				if(!argv[i][(j + 1)]) {
+					if((minus_f = strdup(argv[(i + 1)])) == NULL) {
+						die("strdup() failed in X()");
+					}
+					add++;
+				}
+				else {
+					if((minus_f = strdup(argv[i]+j+1)) == NULL) {
+						die("strdup failed in X()");
+					}
+				}
+
+				if(strcpy(minus_f, strip_from(minus_f)) == NULL) {
+					die("strcpy() failed in X()");
+				}
+				goto exit;
+			case 'h':	/* Set hopcount. */
+				continue;
+			case 'm':	/* Ignore originator in adress list */
+				continue;
+			case 'M':	/* Use specified message-id */
+				goto exit;
+			case 'N':	/* dsn options */
+				add++;
+				goto exit;
+			case 'n':	/* No aliasing */
+				continue;
+			case 'o':
+				switch(argv[i][++j]) {
+
+				case 'A':	/* Alternate aliases file. */
+						goto exit;
+				case 'c':	/* Delay connections. */
+						continue;
+				case 'D':	/* Run newaliases if rqd. */
+						paq("%s: Aliases are not used in sSMTP\n", ProgName);
+				case 'd':	/* Deliver now, in background or queue. */
+						/* This may warrant a diagnostic for b or q. */
+						continue;
+				case 'e':	/* Errors: mail, write or none. */
+						j++;
+						continue;
+				case 'F':	/* Set tempfile mode. */
+						goto exit;
+				case 'f':	/* Save ``From ' lines. */
+						continue;
+				case 'g':	/* Set group id. */
+						goto exit;
+				case 'H':	/* Helpfile name. */
+						continue;
+				case 'i':	/* DATA ends at EOF, not \n.\n */
+						continue;
+				case 'L':	/* Log level. */
+						goto exit;
+				case 'm':	/* Send to me if in the list. */
+						continue;
+				case 'o':	/* Old headers, spaces between adresses. */
+						paq("-oo is not supported by sSMTP\n");
+				case 'Q':	/* Queue dir. */
+						goto exit;
+				case 'r':	/* Read timeout. */
+						goto exit;
+				case 's':	/* Always init the queue. */
+						continue;
+				case 'S':	/* Stats file. */
+						goto exit;
+				case 'T':	/* Queue timeout. */
+						goto exit;
+				case 't':	/* Set timezone. */
+						goto exit;
+				case 'u':	/* Set uid. */
+						goto exit;
+				case 'v':	/* Set verbose flag. */
+						minus_v = True;
+						continue;
+				}
+				break;
+			case 'q':	/* Process the queue [at time] */
+					paq("%s: Mail queue is empty\n", ProgName);
+			case 't':	/* Read message's To/Cc/Bcc lines. */
+					minus_t = True;
+					continue;
+			case 'v':	/* minus_v (ditto -ov). */
+					minus_v = True;
+					break;
+			case 'V':	/*  Say version and quit. */
+					/* Similar as die, but no logging */
+					paq("sSMTP %s (not sendmail at all)", Version);
+			}
+		}
+		exit:
+		i += add;
+	}
+	newArgV[newArgC] = NULL;
+
+	if(newArgC <= 1 && !minus_t) {
+		paq("%s: No recipients supplied, mail will not be sent\n", ProgName);
+	}
+
+	if(newArgC > 1 && minus_t)
+		paq("%s: recipients with -t option not supported\n", ProgName);
+
+	return(&newArgV[0]);
+}
+d323 1
+a323 2
+	char buf[(BUF_SZ + 1)], *p, *q, *sd;
+	size_t sl, hs, header_size = 0;
+d330 1
+a330 1
+		die("Could not find password entry for sender (UID %d)", uid);
+d332 1
+a332 1
+	get_arpadate(date_str);
+d338 1
+a338 2
+	p = strtok(pw->pw_gecos, ";,");
+	if(p) {
+d341 1
+a341 1
+	rev_aliases(pw);
+d343 1
+d345 1
+a345 1
+		do_from(pw);
+d347 1
+d349 3
+a351 29
+	headerp = NULL;
+	while(fgets(buf, BUF_SZ, stdin) != NULL) {
+		if(*buf == '\n') break;
+
+		sl = strlen(buf);
+		hs = header_size;
+		header_size += sl;
+		headerp = realloc(headerp, header_size);
+		(void)memcpy((headerp + hs), buf, sl);
+	}
+	headerp = realloc(headerp, (header_size + 1));
+
+	p = (char *)headerp;
+	p[header_size] = (char)NULL;
+
+	q = buf;
+	while(*p) {
+		if(*p == '\n') {
+			switch(*++p) {
+				case ' ':
+				case '\t':	continue;
+
+				default:
+						*q = (char)NULL;
+
+					/* Trim off \n, double leading .'s */
+						standardise(buf);
+
+						record_headers(buf);
+d353 6
+d360 1
+a360 1
+						fix_from(buf, BUF_SZ);
+d362 1
+a362 4
+						q = buf;
+			}
+		}
+		*q++ = *p++;
+a365 6
+	if(minus_t) {
+		/* Sorry no support for the exclusions on the command line */
+		/*      argv=recipients;       */
+		*rec++ = NULL;
+	}
+
+d374 2
+a375 2
+	if((sock = SMTP_open(MailHub, smtp_port)) == -1) {
+		die("Cannot open %s:%d", MailHub, smtp_port);
+d378 1
+a378 1
+		die("Didn't get initial OK message from SMTP server");
+d383 2
+a384 2
+	if(authUsername) {
+		SMTP_write(sock, "EHLO %s", HostName);
+d387 1
+a387 1
+		SMTP_write(sock, "HELO %s", HostName);
+d391 3
+a393 1
+	if(SMTP_OK(sock, buf) == False) die("%s (%s)", buf, HostName);
+d396 1
+a396 1
+	if(authUsername) {
+d398 1
+a398 1
+		to64frombits(buf, authUsername, strlen(authUsername));
+d407 1
+a407 1
+		to64frombits(buf, authPassword, strlen(authPassword));
+d417 1
+a417 7
+	if(msg_from && from_override) {
+		(void)snprintf(buf, BUF_SZ,
+			"MAIL FROM:<%s>", append_domain(strip_from(msg_from)));
+	}
+	else {
+		(void)snprintf(buf, BUF_SZ, "MAIL FROM:<%s>", (minus_f != NULL) ? append_domain(minus_f) : strip_from(mail_from));
+	}
+a418 1
+	SMTP_write(sock, buf);
+d421 3
+a423 1
+	if(SMTP_OK(sock, buf) == NO) die("%s", buf);
+d428 1
+a428 1
+		if(*RCPT_list == (char)NULL) {
+d431 1
+d433 2
+a434 3
+		i = 0;
+		do {
+			sd = strdup(RCPT_remap(RCPT_list[i]));
+d436 1
+d442 3
+a445 1
+		while(RCPT_list[++i]);
+d452 2
+a453 1
+				get_addr(p, buf, BUF_SZ);
+a454 2
+				sd = strdup(RCPT_remap(buf));
+				SMTP_write(sock, "RCPT TO:<%s>", sd);
+d460 2
+d467 1
+a467 1
+	/* Send DATA. */
+d469 1
+d477 3
+a479 2
+	SMTP_write(sock, "Received: by %s (sSMTP sendmail emulation); %s",
+		HostName, date_str);
+d481 2
+a482 8
+	if(from_seen == False) {
+		/* No From: line; add the sender specified in the command line or generate one */
+		if(minus_F == NULL) {
+			SMTP_write(sock, "From: %s", (minus_f == NULL) ? mail_from : minus_f);
+		}
+		else {
+			SMTP_write(sock, "From: %s <%s>", minus_F, (minus_f == NULL) ? strip_from(mail_from) : minus_f);
+		}
+d485 2
+a486 2
+	if(date_seen == False) {
+		SMTP_write(sock, "Date: %s", date_str);
+d490 1
+a490 1
+	if(to_seen == False) {
+d495 5
+a499 5
+	p = (char *)headerp;
+	while(*p) {
+		i = 0;
+		while(*p && (*p != '\n') && (i < BUF_SZ)) {
+			buf[i++] = *p++;
+d501 2
+a502 1
+		buf[i] = (char)NULL;
+d504 6
+a509 1
+		if(*p) p++;
+a510 3
+		SMTP_write(sock, "%s", buf);
+	}
+	free(headerp);
+d516 1
+a516 1
+	while(fgets(buf, sizeof(buf), stdin) != NULL) {
+d521 1
+d524 1
+a524 1
+	/* End of body. */
+d529 3
+a531 1
+	if(SMTP_OK(sock, buf) == NO) die("%s", buf);
+d535 1
+d541 1
+a541 1
+		"Sent mail for %s (%s)", strip_from(mail_from), buf);
+d546 4
+d558 1
+a558 1
+			die("strncpy() failed in basename()");
+d563 1
+a563 1
+			die("strncpy() failed in basename()");
+d571 1
+d577 1
+a577 1
+	char **newArgv;
+d586 1
+a586 1
+	ProgName = basename(argv[0]);
+d588 1
+a588 1
+	if(gethostname(HostName, sizeof(HostName)) == -1) {
+d591 1
+a591 1
+	newArgv = doOptions(argc, argv);
+d593 1
+a593 1
+	exit(ssmtp(newArgv));
+@
+
+
+2.47
+log
+@Make debug ouput more friendly with message body
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.46 2001/10/17 15:22:34 matt Exp matt $
+d594 1
+a594 1
+	static char Version[] = "$Revision: 2.46 $";
+d841 2
+d844 1
+d999 4
+a1007 4
+
+	if(date_seen == False) {
+		SMTP_write(sock, "Date: %s", date_str);
+	}
+@
+
+
+2.46
+log
+@Updated to fix a number of bugs
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.45 2001/10/15 18:42:07 matt Exp matt $
+d594 1
+a594 1
+	static char Version[] = "$Revision: 2.45 $";
+d1006 12
+a1017 1
+	SMTP_write(sock, "%s", (char *)headerp);
+@
+
+
+2.45
+log
+@Updated to fix bugs and remove dependancy on parseaddr.c
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.44 2001/08/10 15:23:09 matt Exp matt $
+d35 1
+a35 1
+int PortNum = 25;	        /* SMTP port number */
+d51 2
+a52 2
+int minus_v = False;		/* Tell the user what's happening. */
+int minus_t = False;		/* Was a T option given? */
+d56 4
+a59 1
+static Bool from_seen = False,	/*      to_seen = False, */
+d71 1
+a71 1
+char *headerp;			/* Pointer to beginning of headers */
+d82 1
+a82 1
+get_addr() --
+d84 1
+a84 1
+void get_addr(char *str, char *buf, int sz)
+d86 2
+a87 2
+	char *p;
+	int i;
+d89 1
+d91 5
+a95 4
+		str = (p + 1);
+
+		while(*p && (*p != '>')) p++;
+		*p = (char)NULL;
+d99 18
+a116 3
+		while(*p) {
+			if((*p == '\n') || (*p == '\t')) {
+				*p = ' ';
+d118 3
+d122 5
+a126 6
+			if(*p == '(') {
+				while(*p && (*p != ')')) {
+					*p = ' '; p++;
+				}
+				*p = ' ';
+			}
+d128 2
+a129 9
+/*
+			if(*p == '"') {
+				while(*p && (*p != '"')) {
+					*p = ' '; p++;
+				}
+				*p = ' ';
+			}
+*/
+			p++;
+a130 1
+		while(*str && isspace(*str)) str++;
+d132 2
+a133 1
+		i = strlen(str);
+d135 1
+a135 1
+			if(!isspace(str[i])) break;
+d137 1
+a137 1
+		str[(i + 1)] = (char)NULL;
+a138 1
+	(void)strncpy(buf, str, sz);
+d175 1
+a175 1
+			(void)get_addr(str, buf, BUF_SZ);
+d184 4
+a187 1
+			*rec++ = strdup(buf);
+d249 1
+a249 1
+	static char buf[(BUF_SZ + 1)];
+d256 1
+a256 1
+	(void)get_addr(str, buf, BUF_SZ);
+d258 4
+a261 1
+	return(buf);
+d273 3
+a275 1
+			msg_from = strdup(buf);
+d337 3
+a339 1
+	mail_from = strdup(buf);
+d359 1
+a359 1
+void standardise(char *p)
+d361 2
+a362 2
+	size_t n;
+	char *q;
+d364 2
+a365 2
+	if((q = strchr(p, '\n'))) {
+		*q = (char)NULL;
+d371 1
+a371 1
+	n = strlen(p);
+d373 2
+a374 2
+	if(*p == '.') {
+		if((n + 2) > BUF_SZ) {
+d377 1
+a377 1
+		memmove((p + 1), p, (n + 1));  /* copy trailing \0 too */
+d379 1
+a379 1
+		*p = '.';
+d402 3
+a404 1
+				Root = strdup(q);
+d411 3
+a413 1
+				MailHub = strdup(q);
+d416 1
+a416 1
+					PortNum = atoi(r);
+d421 1
+a421 1
+					log_event(LOG_INFO, "Set RemotePort=\"%d\"\n", PortNum);
+d425 3
+a427 1
+				(void)strncpy(HostName, q, MAXHOSTNAMELEN);
+d435 3
+a437 1
+				RewriteDomain = strdup(q);
+d458 1
+a458 1
+				PortNum = atoi(q);
+d461 1
+a461 1
+					log_event(LOG_INFO, "Set RemotePort=\"%d\"\n", PortNum);
+d490 3
+a492 1
+				TLSCert = strdup(q);
+d560 1
+a560 1
+						(void)sprintf(buffer, "\"%s\" <%s>", full_name, p);
+d563 5
+a567 1
+						(void)sprintf(buffer, "%s", p);
+a568 1
+					mail_from = strdup(buffer);
+d576 1
+a576 1
+						PortNum = atoi(r);
+d581 1
+a581 1
+						log_event(LOG_INFO, "via SMTP Port Number=\"%d\"\n", PortNum);
+d594 1
+a594 1
+	static char Version[] = "$Revision: 2.44 $";
+d696 3
+a698 1
+					minus_f = strdup(argv[(i + 1)]);
+d702 7
+a708 1
+					minus_f = strdup(argv[i]+j+1);
+a709 1
+				(void)strcpy(minus_f, strip_from(minus_f));
+d801 1
+a801 1
+ssmtp() -- send the message (exactly one) from stdin to the SMTP port on the mailhub
+d806 1
+d808 1
+a808 2
+	long header_size;
+	int fd, i;
+a809 1
+	void *vp;
+d815 1
+a815 1
+	(void)get_arpadate(date_str);
+d831 1
+a831 1
+	header_size = 0;
+d835 5
+a839 14
+		i = strlen(buf);
+
+		if(header_size == 0) {
+			header_size = i;
+			headerp = malloc(header_size);
+			memcpy(headerp, buf, i);
+		}
+		else {
+			vp = (headerp + header_size);
+
+			header_size = (header_size + i);
+			headerp = realloc(headerp, header_size);
+			memcpy(vp, buf, i);
+		}
+a865 1
+
+d882 2
+a883 2
+	if((fd = SMTP_open(MailHub, PortNum)) == -1) {
+		die("Cannot open %s:%d", MailHub, PortNum);
+d885 1
+a885 1
+	else if(SMTP_OK(fd, buf) == False) {
+d892 1
+a892 1
+		SMTP_write(fd, "EHLO %s", HostName);
+d895 1
+a895 1
+		SMTP_write(fd, "HELO %s", HostName);
+d899 1
+a899 1
+	if(SMTP_OK(fd, buf) == False) die("%s (%s)", buf, HostName);
+d905 1
+a905 1
+		SMTP_write(fd, "AUTH LOGIN %s", buf);
+d908 1
+a908 1
+		if(SMTP_read(fd, buf) != 3) {
+d914 1
+a914 1
+		SMTP_write(fd, "%s", buf);
+d917 1
+a917 1
+		if(SMTP_OK(fd, buf) == False) {
+d931 1
+a931 1
+	SMTP_write(fd, buf);
+d934 1
+a934 1
+	if(SMTP_OK(fd, buf) == False) die("%s", buf);
+d946 1
+a946 1
+			SMTP_write(fd, "RCPT TO:<%s>", sd);
+d949 1
+a949 1
+			if(SMTP_OK(fd, buf) == False) {
+d960 1
+a960 1
+				(void)get_addr(p, buf, BUF_SZ);
+d963 1
+a963 1
+				SMTP_write(fd, "RCPT TO:<%s>", sd);
+d966 1
+a966 1
+				if(SMTP_OK(fd, buf) == False) {
+d975 1
+a975 1
+	SMTP_write(fd, "DATA");
+d978 1
+a978 1
+	if(SMTP_read(fd, buf) != 3) {
+d983 1
+a983 1
+	SMTP_write(fd, "Received: by %s (sSMTP sendmail emulation); %s",
+d989 1
+a989 1
+			SMTP_write(fd, "From: %s", (minus_f == NULL) ? mail_from : minus_f);
+d992 1
+a992 1
+			SMTP_write(fd, "From: %s <%s>", minus_F, (minus_f == NULL) ? strip_from(mail_from) : minus_f);
+d998 1
+a998 1
+		SMTP_write(fd, "To: postmaster");
+d1003 1
+a1003 1
+		SMTP_write(fd, "Date: %s", date_str);
+d1006 1
+a1006 1
+	SMTP_write(fd, "%s", (char *)headerp);
+d1011 1
+a1011 1
+	SMTP_write(fd, "");
+d1017 1
+a1017 1
+		SMTP_write(fd, "%s", buf);
+d1022 1
+a1022 1
+	SMTP_write(fd, ".");
+d1025 1
+a1025 1
+	if(SMTP_OK(fd, buf) == False) die("%s", buf);
+d1029 3
+a1031 3
+	SMTP_write(fd, "QUIT");
+	(void)SMTP_OK(fd, buf);
+	(void)close(fd);
+d1033 2
+a1034 1
+	log_event(LOG_INFO, "Sent mail for %s (%s)", strip_from(mail_from), buf);
+d1046 3
+a1048 1
+		(void)strncpy(buf, ++ptr, MAXPATHLEN);
+d1051 3
+a1053 1
+		(void)strncpy(buf, path, MAXPATHLEN);
+@
+
+
+2.44
+log
+@Fixed similar problem to last few for '-f' option (missing @@domain.com)
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.43 2001/07/30 11:44:57 matt Exp matt $
+d26 1
+d39 1
+a39 1
+int UseRD = NO;			/* Do we have to rewrite the domain? */
+d41 1
+a41 1
+int from_override = NO;		/* Should we use same address in the
+d51 2
+a52 5
+int minus_v = NO;		/* Tell the user what's happening. */
+int minus_t = NO;		/* Was a T option given? */
+int in_rcpt_header = 0;		/* Non-zero if the previous header
+					   line was a "To:", "CC:" or a
+					   "Bcc:", otherwise zero. */
+d56 2
+a57 2
+static int from_seen = NO,	/*      to_seen = NO, */
+date_seen = NO;
+d68 1
+a68 3
+char *header_start;		/* Pointer to beginning of headers */
+char *header_end;		/* End of header */
+#define CHUNK 4096		/* Sizeof allocation */
+d70 2
+a71 2
+int UseTLS = NO;		/* Use SSL to transfer mail to HUB */
+int UseTLSCert = NO;		/* Use a certificate to transfer SSL mail */
+d78 48
+d132 2
+a133 1
+	char buf[(BUF_SZ + 1)], *p, *address;
+d135 1
+d138 2
+a139 2
+		if(*p == '"' ) {
+			quotes(&p);
+d141 23
+a163 3
+		else if(*p == ',') {
+			*p = (char)NULL;
+			parseaddr(str, buf, BUF_SZ);
+a165 2
+				address = strdup(buf);
+
+a168 1
+				*rec++ = address;
+d170 1
+a170 2
+
+			str = (p + 1);
+a173 10
+	parseaddr(str, buf, BUF_SZ);
+
+	if(strlen(buf) > 0) {
+		address = strdup(buf);
+
+		if((rec - RCPT_list) > (100 - 1)) {
+			die("Too many recipients (>= 100)");
+		}
+		*rec++ = address;
+	}
+a180 9
+	if(*str == ' ' || *str == '\t') {
+		if(in_rcpt_header) {
+			RCPT_record(str + 1);
+			/* Keep in_rcpt_header set to non-zero. */
+		}
+		return;
+	}
+	in_rcpt_header = 0;
+
+d182 1
+a182 1
+		from_seen = YES;
+d186 1
+a186 1
+		to_seen = YES;
+d190 1
+a190 1
+		date_seen = YES;
+d196 1
+a196 2
+			RCPT_record(str + 4);
+			in_rcpt_header = 1;
+d199 1
+a199 2
+			RCPT_record(str + 5);
+			in_rcpt_header = 1;
+d202 1
+a202 2
+			RCPT_record(str + 4);
+			in_rcpt_header = 1;
+d217 1
+a217 1
+			(UseRD == YES) ? RewriteDomain : HostName) == -1) {
+a232 1
+	char *p, *q;
+a236 1
+	(void)strncpy(buf, str, BUF_SZ);
+d239 1
+a239 3
+	q = strchr(buf, '<');
+	if(q) {
+		q++;
+d241 1
+a241 15
+		p = strchr(q, '>');
+		if(p) {
+			*p = (char)NULL;
+		}
+	}
+	else {
+		q = buf;
+
+		p = strchr(buf, ' ');
+		if(p) {
+			*p = (char)NULL;
+		}
+	}
+
+	return(q);
+d295 1
+a295 1
+			UseRD == YES ? RewriteDomain : HostName
+d306 1
+a306 1
+			UseRD == YES ? RewriteDomain : HostName
+d407 1
+a407 1
+				UseRD = YES;
+d415 1
+a415 1
+					from_override = YES;
+d418 1
+a418 1
+					from_override = NO;
+d422 1
+a422 1
+					log_event(LOG_INFO, "Set FromLineOverride=\"%s\"\n", from_override ? "YES" : "NO");
+d435 1
+a435 1
+					UseTLS = YES;
+d438 1
+a438 1
+					UseTLS = NO;
+d442 1
+a442 1
+					log_event(LOG_INFO, "Set UseTLS=\"%s\"\n", UseTLS ? "YES" : "NO");
+d447 1
+a447 1
+					UseTLSCert = YES;
+d450 1
+a450 1
+					UseTLSCert = NO;
+d454 1
+a454 1
+					log_event(LOG_INFO, "Set UseTLSCert=\"%s\"\n", UseTLSCert ? "YES" : "NO");
+d491 1
+a491 1
+			return(YES);
+d494 1
+a494 1
+	return(NO);
+d557 1
+a557 1
+	static char Version[] = "$Revision: 2.43 $";
+d635 1
+a635 1
+					minus_v = YES;	/* Almost the same thing... */
+d691 1
+d724 1
+a724 1
+						minus_v = YES;
+d731 1
+a731 1
+					minus_t = YES;
+d734 1
+a734 1
+					minus_v = YES;
+d747 1
+a747 1
+		paq("no recipients supplied: no mail will be sent\n");
+d751 1
+a751 1
+		paq("recipients with -t option not supported\n");
+d761 1
+a761 1
+	char buf[(BUF_SZ + 1)], *p, *sd;
+d763 2
+d766 1
+a766 1
+	int fd, i;
+d774 1
+a774 1
+	if(read_config() == NO) {
+d788 27
+a814 3
+	/* Header analysis first */
+	/* allocation algorithm for header buffer missing */
+	header_end = header_start = malloc(CHUNK);
+d816 5
+a820 3
+	while((fgets(buf, sizeof(buf), stdin) != NULL) && (*buf != '\n')) {
+		/* Trim off \n, double leading .'s */
+		standardise(buf);
+d822 1
+a822 2
+		sd = strdup(buf);
+		record_headers(sd);
+d825 1
+a825 1
+		fix_from(buf, BUF_SZ);
+d827 2
+a828 4
+
+		i = (strlen(buf) + 1);
+		if((header_end + i - header_start) > CHUNK) {
+			die("Header too large Max is %d characters", CHUNK);
+d830 2
+a831 3
+		(void)strcpy(header_end, buf);
+
+		header_end += (strlen(buf) + 1);
+a832 2
+		if(*buf == (char)NULL) break;
+	}
+d852 1
+a852 1
+	else if(SMTP_OK(fd, buf) == NO) {
+d866 1
+a866 1
+	if(SMTP_OK(fd, buf) == NO) die("%s (%s)", buf, HostName);
+d884 1
+a884 1
+		if(SMTP_OK(fd, buf) == NO) {
+d901 1
+a901 1
+	if(SMTP_OK(fd, buf) == NO) die("%s", buf);
+d907 1
+a907 1
+			die("No recipient specified although -t option used");
+d916 1
+a916 1
+			if(SMTP_OK(fd, buf) == NO) {
+d927 1
+a927 1
+				parseaddr(p, buf, sizeof(buf));
+d933 1
+a933 1
+				if(SMTP_OK(fd, buf) == NO) {
+d953 1
+a953 1
+	if(from_seen == NO) {
+d964 1
+a964 1
+	if(to_seen == NO) {
+d969 1
+a969 1
+	if(date_seen == NO) {
+d973 3
+a975 4
+	for(p = header_start; p < header_end; p += strlen(p) + 1) {
+		SMTP_write(fd, "%s", p);
+		(void)alarm((unsigned) MEDWAIT);
+	}
+d992 1
+a992 1
+	if(SMTP_OK(fd, buf) == NO) die("%s", buf);
+@
+
+
+2.43
+log
+@Major code reorganisation
+@
+text
+@d3 1
+a3 1
+ $Id: ssmtp.c,v 2.42 2001/07/21 12:00:05 matt Exp matt $
+d243 1
+a243 1
+remap_RCPT() -- alias systems-level users to the person who
+d248 1
+a248 1
+char *remap_RCPT(char *str)
+d252 2
+a253 1
+	if(strchr(str, '@@') || (pw = getpwnam(str)) == NULL || pw->pw_uid > MAXSYSUID) {
+d535 1
+a535 1
+	static char Version[] = "$Revision: 2.42 $";
+d622 1
+a622 1
+				else {		/* Process queue for recipient. */
+d625 1
+a625 1
+			case 'F':		/* fullname of sender. */
+d634 2
+a635 2
+			case 'f':		/* Set from/sender address. */
+			case 'r':		/* Obsolete -f flag. */
+d645 1
+a645 1
+			case 'h':		/* Set hopcount. */
+d647 1
+a647 1
+			case 'm':		/* Ignore originator in adress list. */
+d649 1
+a649 1
+			case 'M':		/* Use specified message-id. */
+d651 1
+a651 1
+			case 'N':		/* dsn options */
+d654 1
+a654 1
+			case 'n':		/* No aliasing. */
+d850 1
+a850 1
+		(void)snprintf(buf, BUF_SZ, "MAIL FROM:<%s>", (minus_f != NULL) ? minus_f : strip_from(mail_from));
+d862 1
+a862 1
+			die("No recipient specified although -t option specified");
+d867 1
+a867 1
+			sd = strdup(remap_RCPT(RCPT_list[i]));
+d884 1
+a884 1
+				sd = strdup(remap_RCPT(buf));
+@
+
+
+2.42
+log
+@Code fix ups
+@
+text
+@d2 12
+a13 15
+* $Id: ssmtp.c,v 2.41 2001/07/18 17:31:27 matt Exp matt $
+*
+* sSMTP sendmail -- send messages via SMTP to a mailhub for local delivery 
+*      or forwarding. This program is used in place of /usr/lib/sendmail,
+*      called by /bin/mail (et all).   sSMTP does a selected subset of 
+*      sendmail's standard tasks (including exactly one rewriting task), and
+*      explains if you ask it to do something it can't.  It then sends
+*      the mail to the mailhub via an SMTP connection.  Believe it or not,
+*      this is nothing but a filter.  You can receive mail with inetd, an
+*      inverse filter and /bin/mail -d.
+*
+* See COPYRIGHT for the license.
+* 
+* See CHANGELOG for the list of changes.
+* 
+d17 2
+a19 1
+#include <limits.h>
+a20 4
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+a21 1
+#if HAVE_SYSLOG_H
+d23 1
+a23 6
+#else
+#define LOG_ERR 0
+#define LOG_INFO 0
+#endif
+
+#include <signal.h>		/* For the timer and signals */
+a26 12
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdarg.h>
+
+#ifdef HAVE_SSL
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#endif
+
+a28 1
+
+a31 2
+#define PORTNUMBER 25		/* From the Assigned Numbers RFC. */
+
+d34 2
+a35 2
+int PortNum = 0;	        /* The sysadmin assigned SMTP port number. */
+char HostName[MAXLINE];		/* Our name, unless overridden. */
+d40 1
+a40 1
+int FromLineOverride = NO;      /* Should we use same address in the
+d43 5
+a47 6
+char *msgFromLine = NULL;       /* From:-line from message */
+char *fromLine = NULL;          /* From:-line we actually use */
+char *specifiedFrom = NULL;	/* Content of the From: field if specified
+with the -f option */
+char *specifiedName = NULL;	/* Same for -F option */
+char *fullName = NULL;		/* Sending user's full name */
+a48 1
+struct passwd *Sender = NULL;	/* The person sending the mail. */
+d50 3
+a52 3
+int Verbose = NO;		/* Tell the user what's happening. */
+int Toption = NO;		/* Was a T option given? */
+int previous_recipient_header = 0;      /* Non-zero if the previous header
+d56 5
+d62 1
+a62 1
+int LogLevel = 1;		/* Tell the log what's happening. */
+d64 1
+a64 1
+int LogLevel = 0;		/* Tell the log what's happening. */
+d70 4
+d76 1
+a76 1
+char *TLSCert = "/etc/ssl/certs/ssmtp.pem"; /* Default Certificate */ 
+d80 1
+a80 54
+char DateString[ARPADATE_LENGTH];
+
+#if 0
+char *fromLine(void);
+#endif
+char *properRecipient(char *);
+
+int openSocket(char *, int);
+int getOkFromSmtp(int, char *);
+int getFromSmtp(int, char *);
+
+/* wrap read function if using SSL */
+ssize_t wrap_read(int fd, void *buf, size_t count);
+
+#ifdef HAVE_SSL
+/* SSL struct, should it really be global??? */
+SSL *ssl;
+#endif
+
+ssize_t wrap_write(int fd, const void *buf, size_t count) 
+{
+#ifdef HAVE_SSL
+	if(UseTLS==YES) { 
+		return(SSL_write(ssl, buf, count));
+	}
+#endif
+	return(write(fd, buf, count));
+}
+
+/*
+* putToSmtp -- a printf to an fd, which appends TCP/IP <CR/LF>.
+*/
+void putToSmtp(int fd, char *format, ...)
+{
+	char line[MAXLINE];
+	va_list ap;
+
+	va_start(ap, format);
+	if(vsnprintf(line, (MAXLINE - 3), format, ap) == ERR) {
+		die("Buffer overflow in putToSmtp()"); 
+	}
+	va_end(ap);
+
+	if(LogLevel > 0) {
+		log_event(LOG_INFO, "%s\n", line);
+	}
+	(void)strcat(line, "\r\n");
+
+	(void)wrap_write(fd, line, strlen(line));
+}
+
+
+char *recipients[100];
+char **rec = recipients;
+d84 1
+a84 1
+* Supporting libraries -- header insertion.
+d86 1
+a86 8
+static int hasFrom = NO,	/*      hasTo = NO, */
+hasDate = NO;
+
+
+void quotes();
+int parseaddr();
+
+void recordRecipient(char *line)
+d88 1
+a88 3
+	char buf[MAXLINE];
+	char *p = line;
+	char *newaddr;
+d90 1
+d97 1
+a97 1
+			parseaddr(line, buf, MAXLINE);
+d100 1
+a100 1
+				newaddr = strdup(buf);
+d102 1
+a102 1
+				if((rec - recipients) > (100 - 1)) {
+d105 1
+a105 1
+				*rec++ = newaddr;
+d108 1
+a108 1
+			line = (p + 1);
+d112 1
+a112 1
+	parseaddr(line, buf, MAXLINE);
+d115 1
+a115 1
+		newaddr = strdup(buf);
+d117 1
+a117 1
+		if((rec - recipients) > (100 - 1)) {
+d120 1
+a120 1
+		*rec++ = newaddr;
+d125 1
+a125 1
+* recordRequiredHeaders -- note which ones we've seen.
+d127 1
+a127 1
+void recordRequiredHeaders(char *line)
+d129 4
+a132 4
+	if(*line == ' ' || *line == '\t') {
+		if(previous_recipient_header) {
+			recordRecipient(line + 1);
+			/* Keep previous_recipient_header set to non-zero. */
+d136 1
+a136 1
+	previous_recipient_header = 0;
+d138 2
+a139 2
+	if(strncasecmp(line, "From:", 5) == 0) {
+		hasFrom = YES;
+d142 2
+a143 2
+	else if(strncasecmp(line,"To:",3)==0) {
+		hasTo = YES;
+d146 2
+a147 2
+	else if(strncasecmp(line, "Date:", 5) == 0) {
+		hasDate = YES;
+d150 1
+a150 1
+	if(Toption) {
+d152 11
+a162 11
+		if(strncasecmp(line, "To:", 3) == 0) {
+			recordRecipient(line + 4);
+			previous_recipient_header = 1;
+		}
+		else if(strncasecmp(line, "Bcc:", 4) == 0) {
+			recordRecipient(line + 5);
+			previous_recipient_header = 1;
+		}
+		else if(strncasecmp(line, "CC:", 3) == 0) {
+			recordRecipient(line + 4);
+			previous_recipient_header = 1;
+d167 19
+d188 1
+a188 1
+* stripFromLine -- transforms "Name <login@@host>" into "login@@host" or "login@@host (Real name)"
+d190 1
+a190 1
+char *stripFromLine(char *buffer)
+d192 2
+a193 2
+	static char fLine[MAXLINE];
+	char *c,*p;
+d195 2
+a196 2
+	if(!strncmp("From: ", buffer, 6)) {
+		buffer += 6;
+d198 1
+a198 1
+	strncpy(fLine, buffer, MAXLINE);
+d201 3
+a203 3
+	c = strchr(fLine, '<');
+	if(c) {
+		c++;
+d205 1
+a205 1
+		p = strchr(c, '>');
+d211 1
+a211 1
+		c = fLine;
+d213 1
+a213 1
+		p = strchr(fLine, ' ');
+d219 1
+a219 1
+	return(c);
+d224 2
+a225 2
+* fixFromLine -- replace whole From: header with standardised pattern.
+*      Evil, nasty, immoral header-rewriting code (:-)).
+d227 1
+a227 1
+int fixFromLines(char *line)
+d229 3
+a231 5
+	static int inHeaders = YES;
+
+	if(strncasecmp(line, "From:", 5) == 0) {
+		if(FromLineOverride) {
+			msgFromLine = strdup(line);
+d234 2
+a235 2
+			if(snprintf(line, MAXLINE, "From: %s", fromLine) == ERR) {
+				die("Buffer overflown in fixFromLines()");
+a238 6
+
+	if(*line == (char) NULL) {
+		inHeaders = NO;
+	}
+
+	return(inHeaders);
+a241 19
+/* Fix up address with @@domain.name */
+char *addDomainToAddr(char *s)
+{
+#ifdef REWRITE_DOMAIN
+	static char buffer[MAXLINE];
+
+	if(strchr(s, '@@') == NULL) {
+		if(snprintf(buffer, MAXLINE, "%s@@%s", s, UseRD == YES ? RewriteDomain : HostName) == ERR) {
+			die("Buffer overflown in addDomainToAddr()");
+		}
+		else {
+			return(buffer);
+		}
+	}
+#endif
+
+	return(s);
+}
+
+d243 4
+a246 4
+* properRecipient -- alias systems-level users to the person who
+*      reads their mail.  This is variously the owner of a workstation,
+*      the sysadmin of a group of stations and the postmaster otherwise.
+*      We don't just mail stuff off to root on the mailhub (:-)).
+d248 1
+a248 1
+char *properRecipient(char *s)
+d250 1
+a250 1
+	struct passwd *p;
+d252 3
+a254 3
+	if(strchr(s, '@@') || (p = getpwnam(s)) == NULL || p->pw_uid > MAXSYSUID) {
+		/* It's not a local systems-level user. */
+		return(addDomainToAddr(s));
+d257 1
+a257 1
+		return(addDomainToAddr(Root));
+d262 2
+a263 2
+* localFromLine -- generate a from line in standard format
+* ("Real Name <id@@site>" or "id@@site") based on local user and host names.
+d265 1
+a265 1
+void localFromLine(void)
+d267 1
+a267 1
+	static char buffer[MAXLINE];
+d269 2
+a270 2
+	if(fullName) {
+		if(snprintf(buffer, MAXLINE, "%s <%s@@%s>", fullName, Sender->pw_name,
+d276 2
+a277 2
+			) == ERR) {
+				die("Buffer overflow in localFromLine()");
+d281 1
+a281 1
+		if(snprintf(buffer, MAXLINE, "%s@@%s", Sender->pw_name,
+d287 2
+a288 2
+			) == ERR) {
+				die("Buffer overflow in localFromLine()");
+d291 2
+a292 5
+#ifdef DEBUG
+	(void)fprintf(stderr,
+		"Fromline generated: %s (%s)", buffer, RewriteDomain);
+#endif
+	fromLine = strdup(buffer);
+d296 5
+a300 1
+* Supporting libraries -- signals
+d302 1
+a302 8
+/*
+* alarmHandler -- a ``normal'' non-portable version of an alarm handler.
+*      Alas, setting a flag and returning is not fully functional in
+*      BSD: system calls don't fail when reading from a ``slow'' device
+*      like a socket. So we longjump instead, which is erronious on
+*      a small number of machines and ill-defined in the language.
+*/
+void alarmHandler(void)
+d310 1
+a310 51
+* flush -- save stdin to dead.letter, if you can.
+*/
+void flush(void)
+{
+	char line[MAXLINE];
+	FILE *fp;
+
+	if(isatty(fileno(stdin))) {
+		if(LogLevel > 0) {
+			log_event(LOG_ERR, "stdin appears to be a terminal. Not saving to dead.letter");
+		}
+
+		return;
+	}
+
+	if(Sender == NULL) {
+		/* Far to early to save things. */
+		if(LogLevel > 0) {
+			log_event(LOG_ERR, "No sender (can't happen), failing horribly");
+		}
+		return;
+	}
+
+	if(snprintf(line, MAXLINE, "%s/dead.letter", Sender->pw_dir) == ERR) {
+		/* can't use die() here since flush() is called from die() */
+		exit(1);
+	}
+
+	if((fp = fopen(line, "a")) == NULL) {
+		/* Perhaps the person doesn't have a homedir... */
+		if(LogLevel > 0) {
+			log_event(LOG_ERR, "Can't open %s, failing horribly!", line);
+		}
+		return;
+	}
+	(void)putc('\n', fp);	/* Make sure we start on a new line, */
+	(void)putc('\n', fp);	/* with a blank line separating messages. */
+
+	while(fgets(line, sizeof line, stdin)) {
+		(void)fputs(line, fp);
+	}
+
+	if(fclose(fp) == ERR) {
+		if(LogLevel > 0) {
+			log_event(LOG_ERR, "Can't close %s/dead.letter, possibly truncated", Sender->pw_dir);
+		}
+	}
+}
+
+/*
+* standardise -- trim off '\n's, double leading dots.
+d327 2
+a328 2
+		if((n + 2) > MAXLINE) {
+			die("Buffer overflown in standardise()");
+d330 1
+a330 1
+		memmove(p + 1, p, n + 1);  /* copy trailing \0 too */
+d337 1
+a337 1
+* parseConfig -- parse config file, extract values of a few predefined variables.
+d339 1
+a339 1
+void parseConfig(FILE * fp)
+d341 1
+a341 1
+	char line[MAXLINE], *p, *q, *r;
+d343 1
+a343 1
+	while(fgets(line, sizeof line, fp)) {
+d345 1
+a345 1
+		if((p = strchr(line, '#'))) {
+d350 1
+a350 1
+		if(strchr(line, '=') == NULL) continue;
+d353 1
+a353 1
+		if(((p = strtok(line, "= \t\n")) != NULL) && ((q = strtok(NULL, "= \t\n:")) != NULL)) {
+d357 1
+a357 1
+				if(LogLevel > 0) {
+a363 1
+				PortNum = 0;
+d368 1
+a368 5
+				if(PortNum == 0) {
+					PortNum = PORTNUMBER;
+				}
+
+				if(LogLevel > 0) {
+d374 1
+a374 1
+				strcpy(HostName, strdup(q));
+d376 1
+a376 1
+				if(LogLevel > 0) {
+d385 1
+a385 1
+				if(LogLevel > 0) {
+d392 1
+a392 1
+					FromLineOverride = YES;
+d395 1
+a395 1
+					FromLineOverride = NO;
+d398 2
+a399 2
+				if(LogLevel > 0) {
+					log_event(LOG_INFO, "Set FromLineOverride=\"%s\".\n", FromLineOverride ? "YES" : "NO");
+d403 1
+a403 1
+				PortNum=atoi(q);
+d405 2
+a406 2
+				if(LogLevel > 0) {
+					log_event(LOG_INFO, "Set RemotePort=\"%d\".\n", PortNum);
+d418 2
+a419 2
+				if(LogLevel > 0) { 
+					log_event(LOG_INFO, "Set UseTLS=\"%s\".\n", UseTLS ? "YES" : "NO");
+d430 2
+a431 2
+				if(LogLevel > 0) {
+					log_event(LOG_INFO, "Set UseTLSCert=\"%s\".\n", UseTLSCert ? "YES" : "NO");
+d435 1
+a435 1
+				TLSCert=strdup(q);
+d437 2
+a438 2
+				if(LogLevel > 0) {
+					log_event(LOG_INFO, "Set TLSCert=\"%s\".\n", TLSCert);
+d443 1
+a443 1
+				log_event(LOG_INFO, "Unable to set %s=\"%s\".\n", p, q);
+d452 1
+a452 1
+* Config file access routines.
+d454 1
+a454 1
+int getConfig(void)
+d466 1
+a466 1
+			parseConfig(fp);
+d471 1
+a471 1
+	return(NO);			/* We use the default for everything. */
+d475 1
+a475 1
+* getReverseAliases -- parse the reverse alias file, fix globals to use any entry for sender.
+d477 1
+a477 1
+void getReverseAliases()
+d479 2
+a481 2
+	static char buffer[MAXLINE];
+	char line[MAXLINE], *p, *r;
+d487 1
+a487 1
+		while(fgets(line, sizeof line, rev_file)) {
+d489 1
+a489 1
+			if((p = strchr(line, '#'))) {
+d494 1
+a494 1
+			if(strchr(line, ':') == NULL) {
+d499 1
+a499 1
+			if(((p = strtok(line, ":")) != NULL) && !strcmp(p, Sender->pw_name)) {
+d502 2
+a503 2
+					if(fullName) {
+						(void)sprintf(buffer, "\"%s\" <%s>", fullName, p);
+d508 1
+a508 1
+					fromLine = strdup(buffer);
+a514 1
+					PortNum = 0;
+d519 1
+a519 5
+					if(PortNum == 0) {
+						PortNum = PORTNUMBER;
+					}
+
+					if(LogLevel > 0) {
+d530 1
+a530 1
+* doOptions -- pull the options out of the command-line, process them (and special-case calls to mailq, etc), and return the rest.
+d534 1
+a534 1
+	static char Version[] = "$Revision: 2.41 $";
+a559 3
+#ifdef DEBUG
+			printf("%c", argv[i][j]);
+#endif
+d610 3
+a612 3
+			case 'd':	/* Debug. */
+					LogLevel = 1;
+					Verbose = YES;	/* Almost the same thing... */
+d625 2
+a626 2
+				if(!argv[i][j+1]) {
+					specifiedName = strdup(argv[i+1]);
+d630 1
+a630 1
+					specifiedName = strdup(argv[i]+j+1);
+d635 2
+a636 2
+				if(!argv[i][j+1]) {
+					specifiedFrom = strdup(argv[i+1]);
+d640 1
+a640 1
+					specifiedFrom = strdup(argv[i]+j+1);
+d642 1
+a642 1
+				strcpy(specifiedFrom, stripFromLine(specifiedFrom));
+d700 1
+a700 1
+						Verbose = YES;
+d707 1
+a707 1
+					Toption = YES;
+d709 2
+a710 2
+			case 'v':	/* Verbose (ditto -ov). */
+					Verbose = YES;
+d714 1
+a714 4
+					fprintf(stderr, "sSMTP %s (not sendmail at all)\n", Version);
+					flush();		/* Send message to dead.letter */
+					exit(0);
+					break;
+a718 3
+#ifdef DEBUG
+		printf("\n");
+#endif
+d722 1
+a722 1
+	if(newArgC <= 1 && !Toption) {
+d726 2
+a727 2
+	if(newArgC > 1 && Toption)
+		paq("Recipientlist with -t option not supported\n");
+a731 12
+#ifdef REWRITE_DOMAIN
+int fixFromLines();
+#else
+#define fixFromLines(buffer) NO
+#endif
+
+char *headers;			/* Pointer to beginning of headers */
+char *headere;			/* End of header */
+#define CHUNK 4000		/* Sizeof allocation */
+
+extern void to64frombits(unsigned char *out, const unsigned char *in, int inlen);
+
+d733 1
+a733 1
+* ssmtp -- send the message (exactly one) from stdin to the SMTP port on the mailhub.
+d737 3
+a739 1
+	char buffer[MAXLINE], *p, *sd;
+d742 7
+a748 1
+	if(getConfig() == NO) {
+d752 1
+a752 1
+	p = strtok(Sender->pw_gecos, ";,");
+d754 1
+a754 1
+		fullName = strdup(p);
+d756 1
+a756 1
+	getReverseAliases();
+d758 2
+a759 2
+	if(!fromLine) {  /* no reverse alias for sender */
+		localFromLine();
+d764 1
+a764 1
+	headere = headers = malloc(CHUNK);
+d766 1
+a766 1
+	while((fgets(buffer, sizeof(buffer), stdin) != NULL) && (buffer[0] != '\n')) {
+d768 1
+a768 1
+		standardise(buffer);
+d770 2
+a771 2
+		sd = strdup(buffer);
+		recordRequiredHeaders(sd);
+d773 3
+a775 1
+		fixFromLines(buffer);
+d777 2
+a778 2
+		i = (strlen(buffer) + 1);
+		if((headere + i - headers) > CHUNK) {
+d781 1
+a781 1
+		(void)strcpy(headere, buffer);
+d783 1
+a783 1
+		headere += (strlen(buffer) + 1);
+d785 1
+a785 1
+		if(*buffer == (char)NULL) break;
+d787 1
+d789 1
+a789 1
+	if(Toption) {
+d796 2
+a797 2
+	(void)signal(SIGALRM, (void(*)()) alarmHandler);	/* Catch SIGALRMs. */
+	(void)alarm((unsigned) MAXWAIT);	/* Set initial timer. */
+d800 1
+a800 1
+		die("Connection lost in middle of processing, exiting");
+d803 2
+a804 2
+	if((fd = openSocket(MailHub, PortNum)) == ERR) {
+		die("Can't open the SMTP port %s:%d", PortNum, MailHub);
+d806 1
+a806 1
+	else if(getOkFromSmtp(fd, buffer) == NO) {
+a808 5
+	sd = strdup(buffer);
+
+	if(Verbose) {
+		(void)fprintf(stderr, "%s (%s)\n", sd, MailHub);
+	}
+d813 1
+a813 1
+		putToSmtp(fd, "EHLO %s", HostName);
+d816 1
+a816 1
+		putToSmtp(fd, "HELO %s", HostName);
+d820 1
+a820 3
+	if(getOkFromSmtp(fd, buffer) == NO) {
+		die("%s (%s)", buffer, HostName);
+	}
+d824 3
+a826 3
+		memset(buffer, 0, sizeof buffer);
+		to64frombits(buffer, authUsername, strlen(authUsername));
+		putToSmtp(fd, "AUTH LOGIN %s", buffer);
+d829 2
+a830 2
+		if(getFromSmtp(fd, buffer) != 3) {
+			die("Server didn't accept AUTH LOGIN (%s)", buffer);
+d832 1
+a832 1
+		memset(buffer, 0, sizeof buffer);
+d834 2
+a835 2
+		to64frombits(buffer, authPassword, strlen(authPassword));
+		putToSmtp(fd, "%s", buffer);
+d838 2
+a839 2
+		if(getOkFromSmtp(fd, buffer) == NO) {
+			die("Authorization failed (%s)", buffer);
+d844 3
+a846 4
+	if(msgFromLine && FromLineOverride) {
+		putToSmtp(fd, "MAIL FROM:<%s>", stripFromLine(msgFromLine));
+
+		free(msgFromLine);
+d849 1
+a849 1
+		putToSmtp(fd, "MAIL FROM:<%s>", (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+d851 2
+d855 1
+a855 13
+	sd = strdup(stripFromLine(fromLine));
+	if(Verbose) {
+		(void)fprintf(stderr, "MAIL FROM:<%s>\n", sd);
+	}
+
+	if(getOkFromSmtp(fd, buffer) == NO) {
+		die("MAIL FROM:<%s> (%s)\n", sd, buffer);
+	}
+	sd = strdup(buffer);
+
+	if(Verbose) {
+		(void)fprintf(stderr, "%s\n", sd);
+	}
+d859 2
+a860 2
+	if(Toption) {
+		if(!*recipients) {
+d866 3
+a868 7
+			sd = strdup(properRecipient(recipients[i]));
+			putToSmtp(fd, "RCPT TO:<%s>", sd);
+			(void)alarm((unsigned) MEDWAIT);
+
+			if(Verbose) {
+				(void)fprintf(stderr, "RCPT TO:<%s>\n", sd);
+			}
+d870 2
+a871 7
+			if(getOkFromSmtp(fd, buffer) == NO) {
+				die("RCPT TO:<%s> (%s)", sd, buffer);
+			}
+			sd = strdup(buffer);
+
+			if(Verbose) {
+				(void)fprintf(stderr, "%s\n", sd);
+d874 1
+a874 1
+		while(recipients[++i]);
+d881 1
+a881 1
+				parseaddr(p, buffer, sizeof(buffer));
+d883 2
+a884 2
+				sd = strdup(properRecipient(buffer));
+				putToSmtp(fd, "RCPT TO:<%s>", sd);
+d887 2
+a888 12
+				if(Verbose) {
+					(void)fprintf(stderr,
+						"RCPT TO:<%s>\n", sd);
+				}
+
+				if(getOkFromSmtp(fd, buffer) == NO) {
+					die("RCPT TO:<%s> (%s)", sd, buffer);
+				}
+				sd = strdup(buffer);
+
+				if(Verbose) {
+					(void)fprintf(stderr, "%s\n", sd);
+d896 1
+a896 1
+	putToSmtp(fd, "DATA");
+d899 3
+a901 3
+	if(getFromSmtp(fd, buffer) != 3) {
+		/* Oops, we were expecting "354 send your data". */
+		die("%s", buffer);
+a902 1
+	sd = strdup(buffer);
+d904 2
+a905 3
+	if(Verbose) {
+		(void)fprintf(stderr, "%s\n", sd);
+	}
+d907 1
+a907 4
+	putToSmtp(fd, "Received: by %s (sSMTP sendmail emulation); %s",
+		HostName, DateString);
+
+	if(hasFrom == NO) {
+d909 2
+a910 2
+		if(specifiedName == NULL) {
+			putToSmtp(fd, "From: %s", (specifiedFrom!=NULL) ? specifiedFrom : fromLine);
+d913 1
+a913 1
+			putToSmtp(fd, "From: %s <%s>", specifiedName, (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+d918 2
+a919 2
+	if(hasTo == NO) {
+		putToSmtp(fd, "To: postmaster");
+d923 2
+a924 2
+	if(hasDate == NO) {
+		putToSmtp(fd, "Date: %s", DateString);
+d927 2
+a928 2
+	for(p = headers; p < headere; p += strlen(p) + 1) {
+		putToSmtp(fd, "%s", p);
+d933 1
+a933 1
+	putToSmtp(fd, "");		/* Seperate headers and body. */
+d935 1
+a935 1
+	while(fgets(buffer, sizeof(buffer), stdin) != NULL) {
+d937 1
+a937 1
+		standardise(buffer);
+d939 1
+a939 1
+		putToSmtp(fd, "%s", buffer);
+a942 1
+	putToSmtp(fd, ".");
+d944 1
+d947 1
+a947 8
+	if(getOkFromSmtp(fd, buffer) == NO) {
+		die("%s", buffer);
+	}
+	sd = strdup(buffer);
+
+	if(Verbose) {
+		(void)fprintf(stderr, "%s\n", sd);
+	}
+d951 2
+a952 3
+	putToSmtp(fd, "QUIT");
+	(void)getOkFromSmtp(fd, buffer);
+	sd = strdup(buffer);
+d955 1
+a955 6
+	if(Verbose) {
+		(void)fprintf(stderr, "%s\n", sd);
+	}
+
+	(void)log_event(LOG_INFO, "Sent mail for %s (%s)",
+		stripFromLine(fromLine), sd);
+a959 176
+
+/*
+* openSocket -- open a socket on a specified machine.
+*      Adapted from code by Blair P. Houghton:
+*      Copyright 1991 Blair P. Houghton, All Rights Reserved, 
+*      copying and distribution permitted with copyright intact.
+*/
+int openSocket(char *hostName, int portNumber)
+{
+	int fd;			/* socket to "plug" into the socket */
+	struct sockaddr_in socketname;	/* mode, addr, and port data for */
+	/* the socket */
+	struct hostent *remote_host;	/* internet numbers, names */
+#ifdef HAVE_SSL
+	int err;
+
+	/* Init SSL stuff */
+	SSL_CTX *ctx;
+	SSL_METHOD *meth;
+	X509 *server_cert;
+
+	SSL_load_error_strings();
+	SSLeay_add_ssl_algorithms();
+	meth=SSLv23_client_method();
+	ctx = SSL_CTX_new(meth);
+	if(!ctx) {
+		log_event(LOG_ERR, "No SSL support inited\n");
+		return(ERR);
+	}
+
+	if(UseTLSCert==YES) { 
+		if(SSL_CTX_use_certificate_chain_file(ctx, TLSCert) <= 0) {
+			perror("Use certfile");
+			return(ERR);
+		}
+
+		if(SSL_CTX_use_PrivateKey_file(ctx, TLSCert, SSL_FILETYPE_PEM) <= 0) {
+			perror("Use PrivateKey");
+			return(ERR);
+		}
+
+		if(!SSL_CTX_check_private_key(ctx)) {
+			log_event(LOG_ERR, "Private key does not match the certificate public key\n");
+			return(ERR);
+		}
+	}
+#endif
+
+	if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		log_event(LOG_ERR, "Unable to create a socket.\n");
+		return(ERR);
+	}
+
+	/* plug it into the listening socket */
+	socketname.sin_family = AF_INET;
+	if((remote_host = gethostbyname(hostName)) == (struct hostent *) NULL) {
+		log_event(LOG_ERR, "Unable to locate host %s\n", hostName);
+		return(ERR);
+	}
+	(void)bcopy((char *) remote_host->h_addr, (char *) &socketname.sin_addr,
+	remote_host->h_length);
+	socketname.sin_port = htons(portNumber);
+
+	if(connect(fd, (struct sockaddr *) &socketname, sizeof socketname) < 0) {
+		log_event(LOG_ERR,
+			"Unable to connect to %s:%d\n", hostName, portNumber);
+		return(ERR);
+	}
+
+#ifdef HAVE_SSL
+	if(UseTLS == YES) {
+		log_event(LOG_INFO, "Creating SSL connection to host\n");
+
+		ssl = SSL_new(ctx);
+		if(!ssl) {
+			log_event(LOG_ERR, "SSL not working\n");
+			return(ERR);
+		}
+		SSL_set_fd(ssl,fd);
+
+		err = SSL_connect(ssl);
+		if(err < 0) { 
+			perror("Connect");
+			return(ERR);
+		}
+
+		if(LogLevel > 0) { 
+			log_event(LOG_INFO, "SSL connection using %s\n",
+				SSL_get_cipher(ssl));
+		}
+
+		server_cert = SSL_get_peer_certificate(ssl);
+		if(!server_cert) {
+			return(ERR);
+		}
+		X509_free(server_cert);
+
+		/* TODO: Check server cert if changed! */
+	}
+#endif
+
+	return(fd);
+}
+
+/*
+* getOkFromSmtp -- get a line and test the three-number string at the beginning.  If it starts with a 2, it's OK.
+*/
+int getOkFromSmtp(int fd, char *response)
+{
+	return(getFromSmtp(fd, response) == 2) ? YES : NO;
+}
+
+/*
+* getFromSmtp -- get a line and return the initial digit.  Deal with continuation lines by reading to the last (non-continuation) line.
+*/
+int getFromSmtp(int fd, char *response)
+{
+	char *getLine();
+
+	do {
+		if(getLine(response, MAXLINE, fd) == NULL) {
+			*response = (char)NULL;
+
+			return(NO);
+		}
+	}
+	while(response[3] == '-');
+
+	if(LogLevel > 0) {
+		log_event(LOG_INFO, "%s\n", response);
+	}
+
+	return(atoi(response) / 100);
+}
+
+ssize_t wrap_read(int fd, void *buf, size_t count)
+{
+#ifdef HAVE_SSL
+	if(UseTLS==YES) { 
+		return(SSL_read(ssl,buf,count));
+	}
+#endif
+	return(read(fd,buf,count));
+}
+
+/*
+* getLine -- get a line of text from a fd instead of an fp.
+*/
+char *getLine(char *line, int size, int fd)
+{
+	char ch;
+	int i;
+
+	for(i = 0; wrap_read(fd, &ch, 1) == 1;) {
+		if(i == (size - 1)) {
+			/* Truncate like fgets. */
+			line[i] = (char)NULL;
+
+			return(line);
+		}
+		else if(ch == '\r');			/* Strip it. */
+		else if(ch == '\n') {
+			break;
+		}
+		else {
+			line[i++] = ch;
+#ifdef DEBUG
+			line[i] = (char)NULL;
+#endif
+		}
+	}
+	line[i] = (char)NULL;
+
+	return(line);
+}
+
+d962 1
+a962 1
+	static char buffer[MAXPATHLEN +1];
+d967 1
+a967 1
+		(void)strncpy(buffer, ++ptr, MAXPATHLEN);
+d970 1
+a970 1
+		(void)strncpy(buffer, path, MAXPATHLEN);
+d972 1
+a972 1
+	buffer[MAXPATHLEN] = (char)NULL;
+d974 1
+a974 1
+	return(buffer);
+d978 1
+a978 1
+* main -- make the program behave like sendmail, then call ssmtp.
+d984 1
+a984 1
+	/* Try to be bulletproof (:-)) */
+d993 2
+a994 2
+	if(gethostname(HostName, sizeof(HostName)) == ERR) {
+		die("Can't find the name of this host, %s, exiting", "(an impossible condition)");
+a995 6
+
+	if((Sender = getpwuid(getuid())) == NULL) {
+		die("Couldn't find password entry for sender (uid %d)", getuid());
+	}
+	(void)get_arpadate(DateString);
+
+a996 3
+#if 0  
+	printf("authUsername=%s  authPassword=%s\n",authUsername,authPassword);
+#endif  
+@
+
+
+2.41
+log
+@Checkpoint
+@
+text
+@d2 1
+a2 1
+* $Id: ssmtp.c,v 2.40 2001/07/18 17:16:52 matt Exp matt $
+d689 1
+a689 1
+	static char Version[] = "$Revision: 2.40 $";
+d696 1
+a696 1
+	if(strstr(argv[0], "mailq") != NULL) {
+d698 1
+a698 3
+		(void)printf("Mail queue is empty.\n");
+
+		exit(0);
+d700 1
+a700 1
+	else if(strstr(argv[0], "newalias") != NULL) {
+d702 1
+a702 1
+		die("newalias is meaningless to sSMTP: it doesn't do aliases");
+d736 1
+a736 1
+					else 
+d738 1
+d746 25
+a770 5
+				case 'a':		/* ARPANET mode. */
+					die("-ba is not supported by sSMTP sendmail, nor is -t");
+				case 'd':		/* Run as a daemon. */
+					die("-bd is not supported by sSMTP sendmail. Use rSMTP under inetd instead");
+				case 'i':		/* Initialise aliases. */
+d772 1
+a772 1
+				case 'm':		/*  Default addr processing. */
+a773 20
+				case 'p':		/* Print mailqueue. */
+					die("Mail queue is empty.");
+				case 's':		/* Read SMTP from stdin. */
+					die("-bs is not supported by sSMTP sendmail");
+				case 't':		/* Test mode. */
+					die("-bt is meaningless to sSMTP sendmail. It doesn't route");
+				case 'v':		/*  Verify names only. */
+					die("-bv is meaningless to sSMTP sendmail. It doesn't route");
+				case 'z':		/* Create  freeze file. */
+					die("-bz is meaningless to sSMTP sendmail. It isn't programmable");
+				}
+
+			case 'C':		/* Configfile name. */
+				goto exit;
+			case 'd':		/* Debug. */
+				LogLevel = 1;
+				Verbose = YES;	/* Almost the same thing... */
+				continue;
+			case 'E':		/* insecure channel, don't trust userid. */
+				continue;
+a801 1
+				/* Should I support these??? When? */
+d816 50
+a865 20
+				case 'A':		/* Alternate aliases file. */
+					goto exit;
+				case 'c':		/* Delay connections. */
+					continue;
+				case 'D':		/* Run newaliases if rqd. */
+					continue;
+				case 'd':		/* Deliver now, in background or queue. */
+					/* This may warrant a diagnostic for b or q. */
+					continue;
+				case 'e':		/* Errors: mail, write or none. */
+					continue;
+				case 'F':		/* Set tempfile mode. */
+					goto exit;
+				case 'f':		/* Save ``From ' lines. */
+					continue;
+				case 'g':		/* Set group id. */
+					goto exit;
+				case 'H':		/* Helpfile name. */
+					continue;
+				case 'i':		/* DATA ends at EOF, not \n.\n */
+d867 1
+a867 21
+				case 'L':		/* Log level. */
+					goto exit;
+				case 'm':		/* Send to me if in the list. */
+					continue;
+				case 'o':		/* Old headers, spaces between adresses. */
+					die("-oo (old header format) is not supported by sSMTP sendmail");
+				case 'Q':		/* Queue dir. */
+					goto exit;
+				case 'r':		/* Read timeout. */
+					goto exit;
+				case 's':		/* Always init the queue. */
+					continue;
+				case 'S':		/* Stats file. */
+					goto exit;
+				case 'T':		/* Queue timeout. */
+					goto exit;
+				case 't':		/* Set timezone. */
+					goto exit;
+				case 'u':		/* Set uid. */
+					goto exit;
+				case 'v':		/* Set verbose flag. */
+d869 7
+a875 17
+					continue;
+				}
+				break;
+			case 'q':		/* Process the queue [at time] */
+				die("Mail queue is empty.");
+			case 't':		/* Read message's To/Cc/Bcc lines. */
+				Toption = YES;
+				continue;
+			case 'v':		/* Verbose (ditto -ov). */
+				Verbose = YES;
+				break;
+			case 'V':		/*  Say version and quit. */
+				/* Similar as die, but no logging */
+				fprintf(stderr, "sSMTP %s (not sendmail at all)\n", Version);
+				flush();		/* Send message to dead.letter */
+				exit(0);
+				break;
+d887 1
+a887 1
+		die("no recipients supplied: no mail will be sent");
+d891 1
+a891 1
+		die("Recipientlist with -t option not supported");
+@
+
+
+2.40
+log
+@Checkpoint
+@
+text
+@d2 1
+a2 1
+* $Id: ssmtp.c,v 1.11 2001/07/18 16:09:05 matt Exp $
+a42 3
+#include "string_ext.h"		/* Local additions */
+#include "ssmtp.h"
+
+d51 3
+d689 1
+a690 1
+	static char Version[] = "$Revision$";
+d874 1
+a874 1
+				fprintf(stderr, "sSMTP version %s (not sendmail at all)\n", Version);
+@
+
+
+2.40.0.1
+log
+@Checkpoint
+@
+text
+@d2 1
+a2 1
+* $Id: ssmtp.c,v 2.40 2001/07/18 17:16:52 matt Exp matt $
+d43 3
+a53 2
+#include "ssmtp.h"
+
+d690 1
+a690 1
+	static char Version[] = "$Revision: 2.40 $";
+@
+
+
+2.40.1.1
+log
+@Changed to track on 2.40.X revisions
+@
+text
+@d2 1
+a2 1
+* $Id: ssmtp.c,v 2.41 2001/07/18 17:31:27 matt Exp matt $
+d43 3
+a53 3
+#include "ssmtp.h"
+
+
+a688 1
+	static char Version[] = "$Revision: 2.41 $";
+d690 1
+d874 1
+a874 1
+				fprintf(stderr, "sSMTP %s (not sendmail at all)\n", Version);
+@
+
+
+1.11
+log
+@Clean up syslog messages and bug fix for multiple line To/Cc/Bcc lines
+@
+text
+@d2 1
+a2 1
+* $Id: ssmtp.c,v 1.10 2001/07/06 17:39:45 matt Exp matt $
+d22 2
+a23 2
+#include <pwd.h>		/* For getpwent */
+#include <sys/types.h>		/* For sockets */
+d29 1
+a29 1
+#include <syslog.h>		/* For logging. */
+a44 1
+#include "patchlevel.h"
+a58 1
+char *Version = VERSION;	/* The version of the program. */
+d138 2
+a139 2
+	if(vsnprintf(line, (MAXLINE - 3), format, ap) == -1) {
+		die("Buffer overflown in putToSmtp()"); 
+d298 1
+a298 1
+			if(snprintf(line, MAXLINE, "From: %s", fromLine) == -1) {
+d319 2
+a320 2
+		if(snprintf(buffer, MAXLINE, "%s@@%s", s, UseRD == YES ? RewriteDomain : HostName) == -1) {
+			die("Buffer overflown in fromLine");
+d365 1
+a365 1
+			) == -1) {
+d376 1
+a376 1
+			) == -1) {
+d428 1
+a428 1
+	if(snprintf(line, MAXLINE, "%s/dead.letter", Sender->pw_dir) == -1) {
+d689 2
+a691 1
+	static char *newArgV[MAXARGS];
+d704 1
+a704 2
+		/* This is slightly more like to be a human... */
+		die("newalias is meaningless to sSMTP: it doesn't do aliases.");
+d748 1
+a748 1
+					die("-ba is not supported by sSMTP sendmail, nor is -t.");
+d750 1
+a750 1
+					die("-bd is not supported by sSMTP sendmail. Use rSMTP under inetd instead.");
+d758 1
+a758 1
+					die("-bs is not supported by sSMTP sendmail.");
+d760 1
+a760 1
+					die("-bt is meaningless to sSMTP sendmail. It doesn't route.");
+d762 1
+a762 1
+					die("-bv is meaningless to sSMTP sendmail. It doesn't route.");
+d764 1
+a764 1
+					die("-bz is meaningless to sSMTP sendmail. It isn't programmable.");
+d844 1
+a844 1
+					die("-oo (old header format) is not supported by sSMTP sendmail.");
+d874 1
+a874 3
+				fprintf(stderr,
+				"sSMTP version %s (not sendmail at all)\n",
+				Version);
+d889 1
+a889 1
+		die("no recipients supplied: no mail will be sent.");
+d893 1
+a893 1
+		die("Recipientlist with -t option not supported.");
+d915 1
+a915 1
+	char buffer[MAXLINE], *p;
+d940 2
+a941 1
+		recordRequiredHeaders(strdup(buffer));
+d945 2
+a946 2
+		i = strlen(buffer) + 1;
+		if(headere + i - headers > CHUNK) {
+d949 1
+a949 1
+		strcpy(headere, buffer);
+d951 1
+a951 1
+		headere += strlen(buffer) + 1;
+d971 1
+a971 1
+		die("Can't open the SMTP port (%d) on %s", PortNum, MailHub);
+d976 1
+d979 1
+a979 1
+		(void)fprintf(stderr, "%s (%s)\n", buffer, MailHub);
+d993 1
+a993 1
+		die("Server didn't accept hostname %s, replied \"%s\"", HostName, buffer);
+d1004 1
+a1004 1
+			die("Server didn't accept AUTH LOGIN, replied \"%s\"", buffer);
+d1013 1
+a1013 1
+			die("Authorization failed: \"%s\"", buffer);
+d1028 5
+d1034 1
+a1034 1
+		die("MAIL FROM:<%s> (%s)\n", stripFromLine(fromLine), buffer);
+d1036 1
+d1039 1
+a1039 3
+		(void)fprintf(stderr,
+			"MAIL FROM:<%s>\n", stripFromLine(fromLine));
+		(void)fprintf(stderr, "%s\n", buffer);
+d1051 7
+a1057 1
+			putToSmtp(fd, "RCPT TO:<%s>", properRecipient(recipients[i]));
+a1058 1
+			(void)alarm((unsigned) MEDWAIT);
+d1060 1
+a1060 1
+				die("RCPT TO:<%s> (%s)", properRecipient(recipients[i]), buffer);
+d1062 1
+d1065 1
+a1065 3
+				(void)fprintf(stderr, "RCPT TO:<%s>\n",
+					properRecipient(recipients[i]));
+				(void)fprintf(stderr, "%s\n", buffer);
+d1077 2
+a1078 1
+				putToSmtp(fd, "RCPT TO:<%s>", properRecipient(buffer));
+d1081 5
+d1087 6
+a1092 1
+					die("RCPT TO:<%s> (%s)", properRecipient(recipients[i]), buffer);
+a1094 4
+
+	if(Verbose) {
+		(void)fprintf(stderr, "RCPT TO:<%s>\n", properRecipient(recipients[i]));
+	}
+d1102 1
+d1105 1
+a1105 1
+		die("SMTP server didn't accept DATA, replied \"%s\"", buffer);
+d1107 1
+d1110 1
+a1110 1
+		(void)fprintf(stderr, "%s\n", buffer);
+d1157 1
+a1157 1
+		die("SMTP server wouldn't accept message, replied \"%s\"", buffer);
+d1159 1
+d1162 1
+a1162 1
+		(void)fprintf(stderr, "%s\n", buffer);
+d1169 1
+d1173 1
+a1173 1
+		(void)fprintf(stderr, "%s\n", buffer);
+d1177 1
+a1177 1
+		stripFromLine(fromLine), buffer);
+a1229 1
+
+d1231 1
+a1231 1
+		log_event(LOG_ERR, "unable to create a socket.\n");
+d1238 1
+a1238 1
+		log_event(LOG_ERR, "unable to locate host %s.\n", hostName);
+d1246 2
+a1247 2
+		log_event(LOG_ERR, "unable to connect to \"%s\" port %d.\n",
+		hostName, portNumber);
+d1253 1
+a1253 1
+		log_event(LOG_INFO, "creating SSL connection to host\n");
+a1262 1
+
+d1268 2
+a1269 3
+		if(LogLevel>0) { 
+			log_event(LOG_INFO,
+				"SSL connection using %s\n",
+a1279 1
+
+a1293 1
+
+a1316 1
+
+a1325 1
+
+@
+
+
+1.10
+log
+@Changed syslog to give envelope sender and SMTP return code
+Some clean-up of source
+@
+text
+@d2 1
+a2 1
+* $Id: ssmtp.c,v 1.9 2001/05/24 12:11:54 matt Exp matt $
+d4 1
+a4 1
+* sSMTP sendmail -- send messages via smtp to a mailhub for local delivery 
+d9 1
+a9 1
+*      the mail to the mailhub via an smtp connection.  Believe it or not,
+d19 1
+d28 1
+a28 1
+#ifdef SYSLOG
+d63 1
+a63 1
+int PortNum = 0;	        /* The sysadmin assigned smtp port number. */
+d105 1
+a105 1
+char *fromLine (void);
+d107 1
+a107 1
+char *properRecipient (char *);
+d109 3
+a111 3
+int openSocket (char *, int);
+int getOkFromSmtp (int, char *);
+int getFromSmtp (int, char *);
+d125 1
+a125 1
+		return SSL_write(ssl,buf,count);
+d128 1
+a128 1
+	return write(fd,buf,count);
+a135 1
+	va_list args;
+d137 5
+a141 3
+	va_start(args, format);
+	if(vsnprintf(line, MAXLINE-3, format, args) == -1) {
+		die("buffer overflown in putToSmtp"); 
+d143 1
+d146 1
+a146 1
+		log_event(LOG_INFO, "Sent \"%s\" to smtp port.\n", line);
+d148 3
+a150 6
+#ifdef DEBUG
+	printf("%s\n",line);
+#endif
+	(void) strcat(line, "\r\n");
+	(void) wrap_write(fd, line, strlen(line));
+	va_end(args);
+d171 1
+a172 1
+	char *p = line;
+d174 2
+a175 3
+	while( *p ) {
+
+		if( *p == '"' ) {
+d178 2
+a179 3
+		else if( *p == ',' ) {
+
+			*p = '\0';
+a180 1
+			newaddr = strdup( buf );
+d182 2
+a183 1
+			if((rec - recipients) > (100 - 1)) {
+d185 4
+a188 1
+				die("too many recipients");
+d190 2
+a191 2
+			*rec++ = newaddr;
+			line = p+1;
+d195 1
+a195 2
+	parseaddr( line, buf, MAXLINE );
+	newaddr = strdup( buf );
+d197 2
+a198 1
+	if(( rec - recipients ) > 100-1 ) {
+d200 4
+a203 1
+		die("too many recipients");
+a204 1
+	*rec++ = newaddr;
+a211 1
+
+a212 1
+
+a213 1
+
+a216 1
+
+a218 1
+
+a221 1
+
+a225 1
+
+a229 1
+
+d232 1
+a235 1
+
+a239 1
+
+a243 1
+
+d252 1
+a252 2
+* stripFromLine -- transforms "Name <login@@host>" into "login@@host"
+*                  or "login@@host (Real name)"
+d254 1
+a254 2
+char *
+stripFromLine(char *buffer)
+d259 3
+a261 2
+	if(!strncmp("From: ", buffer, 6)) buffer += 6;
+
+d267 1
+a268 1
+		c++;
+d270 3
+a272 2
+		if(p)
+		*p = '\0';
+d276 1
+d278 3
+a280 2
+		if(p)
+		*p = '\0';
+d283 1
+a283 42
+	return c;
+}
+
+/*
+* addRequiredHeaders -- add ones that have been missed.
+*/
+void 
+addRequiredHeaders(int fd)
+{
+
+	if(hasFrom == NO) {
+
+		/* No From: line; add the sender specified in the command line or
+		generate one */
+		if(specifiedName == NULL)
+		putToSmtp(fd, "From: %s", (specifiedFrom!=NULL) ? specifiedFrom : fromLine);
+		else
+		putToSmtp(fd, "From: %s <%s>", specifiedName, (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+	}
+#ifdef HASTO_OPTION
+	if(hasTo == NO) {
+
+		putToSmtp(fd,"To: postmaster");
+	}
+#endif
+	if(hasDate == NO) {
+
+		putToSmtp(fd, "Date: %s", DateString);
+	}
+}
+
+/*
+* addInitialHeaders -- prepend prerequisite timstamp
+*      and actual date lines.
+*/
+void 
+addInitialHeaders(int fd)
+{
+
+	putToSmtp(fd, "Received: by %s (sSMTP sendmail emulation); %s",
+	HostName, DateString);
+
+d291 1
+a291 2
+int 
+fixFromLines(char *line)
+d295 8
+a302 7
+	if (strncasecmp(line, "From:", 5) == 0) {
+
+		if(FromLineOverride)
+		msgFromLine = strdup(line);
+		else
+		if(snprintf(line, MAXLINE, "From: %s", fromLine) == -1) {
+			die("buffer overflown in fixFromLines");
+d305 1
+a306 1
+
+d309 2
+a310 1
+	return inHeaders;
+d321 1
+a321 2
+		if(snprintf(buffer, MAXLINE, "%s@@%s",
+		s, UseRD == YES ? RewriteDomain : HostName) == -1) {
+d329 1
+d339 1
+a339 2
+char *
+properRecipient(char *s)
+d343 1
+a343 4
+	if(strchr(s, '@@')
+	|| (p = getpwnam (s)) == NULL
+	|| p->pw_uid > MAXSYSUID) {
+
+d345 1
+a345 1
+		return addDomainToAddr(s);
+d348 1
+a348 2
+
+		return addDomainToAddr(Root);
+a349 1
+	/*@@NOTREACHED@@*/
+d356 1
+a356 2
+void
+localFromLine(void)
+d359 1
+d361 1
+a361 3
+		if(snprintf(buffer, MAXLINE, "%s <%s@@%s>",
+		fullName,
+		Sender->pw_name,
+d363 1
+a363 1
+		UseRD == YES ? RewriteDomain : HostName
+d365 1
+a365 1
+		HostName
+d367 2
+a368 2
+		) == -1) {
+			die("Buffer overflown in fromLine");
+d372 1
+a372 2
+		if(snprintf(buffer, MAXLINE, "%s@@%s",
+		Sender->pw_name,
+d374 1
+a374 1
+		UseRD == YES ? RewriteDomain : HostName
+d376 1
+a376 1
+		HostName
+d378 2
+a379 2
+		) == -1) {
+			die("Buffer overflown in fromLine");
+d383 2
+a384 1
+	fprintf(stderr,"Fromline generated: %s (%s)",buffer,RewriteDomain);
+d399 1
+a399 2
+void 
+alarmHandler(void)
+d402 2
+a403 1
+	longjmp(TimeoutJmpBuf, (int) 1);
+a406 4
+* emergency exit functions.
+*/
+
+/*
+d416 1
+a416 1
+			log_event(LOG_ERR, "stdin appears to be a terminal. Not saving to dead.letter.");
+d418 1
+d421 1
+d425 1
+a425 1
+			log_event(LOG_ERR, "No sender (can't happen), failing horribly.");
+d438 1
+a438 2
+			log_event(LOG_ERR,
+				"Can't open %s, failing horribly!", line);
+d442 2
+a443 2
+	(void) putc('\n', fp);	/* Make sure we start on a new line, */
+	(void) putc('\n', fp);	/* with a blank line separating messages. */
+d446 1
+a446 1
+		(void) fputs(line, fp);
+d451 1
+a451 3
+			log_event(LOG_ERR,
+			"Can't close %s/dead.letter, possibly truncated.",
+			Sender->pw_dir);
+d465 1
+a465 1
+		*q = '\0';
+d472 1
+d474 4
+a477 2
+		if(n + 2 > MAXLINE)
+		die("buffer overflown in standardise");
+a478 1
+		memmove(p + 1, p, n + 1);  /* copy trailing \0 too */
+d484 1
+a484 2
+* parseConfig -- parse config file, extract values of a few
+*      predefined variables.
+d493 1
+a493 1
+			*p = '\0';
+d497 1
+a497 2
+		if(strchr(line, '=') == NULL)
+			continue;
+d500 1
+a500 2
+		if(((p = strtok(line, "= \t\n")) != NULL)
+		&& ((q = strtok(NULL, "= \t\n:")) != NULL)) {
+d505 1
+a505 2
+					log_event(LOG_INFO,
+					"Set Root=\"%s\".\n", Root);
+d510 1
+d512 8
+a519 2
+				if((r = strtok(NULL, "= \t\n:")) != NULL) PortNum = atoi(r);
+				if(PortNum == 0) PortNum = PORTNUMBER;
+d521 2
+a522 5
+					log_event(LOG_INFO,
+					"Set MailHub=\"%s\".\n", MailHub);
+					log_event(LOG_INFO,
+					"via SMTP Port Number=\"%d\".\n", PortNum);
+
+d526 2
+a527 1
+				(void) strcpy(HostName, strdup(q));
+d529 1
+a529 2
+					log_event(LOG_INFO,
+					"Set HostName=\"%s\".\n", HostName);
+a531 1
+
+d535 1
+d538 1
+a538 3
+					log_event(LOG_INFO,
+					"Set RewriteDomain=\"%s\".\n",
+					RewriteDomain);
+d543 7
+a549 4
+				if(strcasecmp(q, "yes") == 0)
+				FromLineOverride = YES;
+				else
+				FromLineOverride = NO;
+d551 1
+a551 3
+					log_event(LOG_INFO,
+					"Set FromLineOverride=\"%s\".\n",
+					FromLineOverride ? "YES" : "NO");
+d556 1
+d558 1
+a558 3
+					log_event(LOG_INFO,
+					"Set Port=\"%d\".\n",
+					PortNum);
+d563 7
+a569 4
+				if(strcasecmp(q, "yes") == 0)
+				UseTLS = YES;
+				else
+				UseTLS = NO;
+d571 1
+a571 2
+					log_event(LOG_INFO,
+					"Set UseTLS=\"%s\".\n", UseTLS ? "YES" : "NO");
+d575 1
+a575 1
+				if(strcasecmp(q, "yes") == 0)
+d577 2
+a578 1
+				else
+d580 1
+d583 1
+a583 3
+					log_event(LOG_INFO,
+					"Set UseTLSCert=\"%s\".\n",
+					UseTLSCert ? "YES" : "NO");
+d587 1
+a588 1
+				TLSCert=strdup(q);
+d590 1
+a590 3
+					log_event(LOG_INFO,
+					"Set TLSCert=\"%s\".\n",
+					TLSCert);
+d595 1
+a595 4
+
+				log_event(LOG_INFO,
+				"Unable to set %s=\"%s\".\n",
+				p, q);
+d599 1
+d606 1
+a606 2
+int 
+getConfig(void)
+d610 4
+a613 5
+	{
+		CONFIGURATION_FILE,
+		NULL
+	}
+	;
+a616 1
+
+a617 1
+
+d619 2
+a620 2
+			(void) fclose(fp);
+			return YES;
+d623 1
+a623 1
+	return NO;			/* We use the default for everything. */
+d627 1
+a627 2
+* getReverseAliases -- parse the reverse alias file, fix globals to use
+* any entry for sender.
+d629 1
+a629 2
+void
+getReverseAliases()
+d634 1
+a638 1
+
+a639 1
+
+d642 2
+d645 3
+a647 1
+				*p = '\0';
+d649 1
+a649 3
+			/* Ignore malformed lines and comments. */
+			if(strchr(line, ':') == NULL)
+			continue;
+d651 1
+a651 3
+			if(((p = strtok(line, ":")) != NULL)
+			&& !strcmp(p, Sender->pw_name)) {
+
+d654 6
+a659 5
+
+					if(fullName)
+					(void) sprintf(buffer, "\"%s\" <%s>", fullName, p);
+					else
+					(void) sprintf(buffer, "%s", p);
+d663 1
+d665 1
+a666 1
+					MailHub = strdup(p);
+d668 8
+a675 2
+					if((r = strtok(NULL, " \t\r\n:")) != NULL) PortNum = atoi(r);
+					if(PortNum == 0) PortNum = PORTNUMBER;
+d677 2
+a678 5
+
+						log_event(LOG_INFO,
+						"Set MailHub=\"%s\".\n", MailHub);
+						log_event(LOG_INFO,
+						"via SMTP Port Number=\"%d\".\n", PortNum);
+d687 1
+a687 2
+* doOptions -- pull the options out of the command-line, process them 
+*      (and special-case calls to mailq, etc), and return the rest.
+d689 1
+a689 2
+char **
+doOptions(int argc, char *argv[])
+d698 2
+a700 2
+		/* Someone wants to know the queue state... */
+		(void) printf("Mail queue is empty.\n");
+a703 1
+
+a710 1
+
+a711 1
+
+d716 1
+d718 1
+a718 2
+		while(argv[i][++j] != '\0') {
+
+a722 1
+
+a724 1
+
+a726 1
+
+d730 3
+a732 2
+					else 
+					authUsername = strdup(argv[i]+j+1);
+d734 1
+a736 1
+
+d741 1
+a741 1
+					authPassword = strdup(argv[i]+j+1);
+d759 1
+a759 1
+				case 's':		/* Read smtp from stdin. */
+d768 1
+d891 1
+a892 1
+
+d895 1
+d897 3
+a899 2
+	die("Recipientlist with -t option not supported.");
+	return &newArgV[0];
+d915 1
+a915 2
+* ssmtp -- send the message (exactly one) from stdin to the smtp
+*      port on the mailhub.
+d927 1
+a927 1
+	if(p)
+d929 1
+d931 1
+a938 1
+	while((fgets(buffer, sizeof buffer, stdin) != NULL) && (buffer[0] != '\n')) {
+d940 1
+a940 2
+		if(Verbose)
+		fprintf(stderr, "Read Header: %s", buffer);
+d943 3
+a945 1
+		recordRequiredHeaders(buffer);
+d947 1
+d949 1
+a949 1
+		if(headere + i - headers > CHUNK)
+a950 4
+		strcpy (headere, buffer);
+		headere += strlen (buffer) + 1;
+		if (*buffer == '\0') {
+			break;
+d952 5
+d959 1
+a959 1
+	if (Toption) {
+d966 2
+a967 2
+	(void) signal (SIGALRM, (void (*)()) alarmHandler);	/* Catch SIGALRMs. */
+	(void) alarm ((unsigned) MAXWAIT);	/* Set initial timer. */
+d970 1
+a970 1
+		die("connection lost in middle of processing, exiting.");
+d973 2
+a974 3
+	if ((fd = openSocket (MailHub, PortNum)) == ERR) {
+		die ("can't open the smtp port (%d) on %s.",
+		PortNum, MailHub);
+d976 2
+a977 2
+	else if (getOkFromSmtp (fd, buffer) == NO) {
+		die ("didn't get initial OK message from smtp server.");
+d980 2
+a981 7
+	if (Verbose) {
+		(void)fprintf(stderr,
+			"Connected to SMTP server %s\n", MailHub);
+	}
+
+	if (LogLevel > 0) {
+		log_event(LOG_INFO, "Connected to SMTP server %s\n", MailHub);
+a985 1
+
+d992 1
+a992 1
+	(void) alarm ((unsigned) MEDWAIT);
+d995 1
+a995 2
+		die ("Server didn't accept hostname %s, replied \"%s\"",
+			HostName, buffer);
+d1003 1
+d1006 1
+a1006 1
+			die ("server didn't accept AUTH LOGIN, replied \"%s\".", buffer);
+d1009 1
+d1011 5
+a1015 4
+		putToSmtp (fd, "%s", buffer);
+		(void) alarm ((unsigned) MEDWAIT);
+		if (getOkFromSmtp (fd, buffer) == NO) {
+			die ("authorization failed: \"%s\".", buffer);
+d1020 1
+a1020 1
+	if (msgFromLine && FromLineOverride) {
+d1022 1
+d1025 4
+a1028 2
+	else
+		putToSmtp (fd, "MAIL FROM:<%s>", (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+d1030 2
+a1031 8
+	(void) alarm ((unsigned) MEDWAIT);
+
+	if (getOkFromSmtp (fd, buffer) == NO) {
+		die ("smtp server didn't accept MAIL From, replied \"%s\".",
+		buffer);
+	}
+	if (Verbose) {
+		(void) fprintf (stderr, "Server accepted MAIL FROM: %s line.\n", stripFromLine(fromLine));
+d1034 4
+a1037 2
+	if(LogLevel > 0) {
+		log_event(LOG_INFO, "Server accepted MAIL FROM: %s line.\n", stripFromLine(fromLine));
+d1042 5
+a1046 3
+	if (Toption) {
+		if (!*recipients)
+		die ("No recipient specified although -t option specified");
+d1049 11
+a1059 4
+			putToSmtp (fd, "RCPT TO:<%s>", properRecipient (recipients[i]));
+			(void) alarm ((unsigned) MEDWAIT);
+			if (getOkFromSmtp (fd, buffer) == NO) {
+				die ("smtp server didn't accept RCPT To: command, replied \"%s\".", buffer);
+d1062 1
+a1062 1
+		while (recipients[++i]);
+d1065 3
+a1067 3
+		for (i = 1; argv[i] != NULL; i++) {
+			p = strtok (argv[i], ",");
+			while (p) {
+d1070 6
+a1075 4
+				putToSmtp (fd, "RCPT TO:<%s>", properRecipient (buffer));
+				(void) alarm ((unsigned) MEDWAIT);
+				if (getOkFromSmtp (fd, buffer) == NO) {
+					die ("smtp server didn't accept RCPT To: command, replied \"%s\".", buffer);
+d1077 5
+a1081 1
+				p = strtok (NULL, ",");
+d1086 6
+a1091 2
+	if (Verbose) {
+		(void) fprintf (stderr, "Server accepted To: line(s).\n");
+d1094 2
+a1095 2
+	if (LogLevel > 0) {
+		log_event (LOG_INFO, "Server accepted To: line(s).\n");
+d1098 11
+a1108 6
+	/* Send DATA. */
+	putToSmtp (fd, "DATA");
+	(void) alarm ((unsigned) MEDWAIT);
+	if(getFromSmtp(fd, buffer) != 3) {
+		/* Oops, we were expecting "354 send your data". */
+		die ("smtp server didn't accept DATA, replied \"%s\"", buffer);
+d1111 3
+a1113 2
+	if (Verbose) {
+		(void) fprintf (stderr, "Message body transmission started\n");
+d1115 1
+d1117 5
+a1121 4
+	/* Send headers, with optional From: rewriting. */
+	addInitialHeaders(fd);
+	addRequiredHeaders(fd);
+	for (p = headers; p < headere; p += strlen (p) + 1) {
+d1128 1
+d1132 1
+d1139 1
+a1139 1
+	(void) alarm ((unsigned) MAXWAIT);
+d1141 2
+a1142 3
+	if(getOkFromSmtp (fd, buffer) == NO) {
+		die ("smtp server wouldn't accept message, replied \"%s\".",
+		buffer);
+d1146 1
+a1146 1
+		(void)fprintf(stderr, "Message body transmission complete\n");
+d1155 4
+d1172 1
+a1172 1
+int openSocket (char *hostName, int portNumber)
+d1192 1
+a1192 1
+		return ERR;
+d1195 1
+a1195 1
+	if (UseTLSCert==YES) { 
+d1198 1
+a1198 1
+			return ERR;
+d1203 1
+a1203 1
+			return ERR;
+d1208 1
+a1208 1
+			return ERR;
+d1214 3
+a1216 3
+	if((fd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
+		log_event (LOG_ERR, "unable to create a socket.\n");
+		return ERR;
+d1221 3
+a1223 3
+	if ((remote_host = gethostbyname (hostName)) == (struct hostent *) NULL) {
+		log_event (LOG_ERR, "unable to locate host %s.\n", hostName);
+		return ERR;
+d1225 1
+a1225 1
+	(void) bcopy ((char *) remote_host->h_addr, (char *) &socketname.sin_addr,
+d1227 1
+a1227 1
+	socketname.sin_port = htons (portNumber);
+d1229 1
+a1229 1
+	if (connect (fd, (struct sockaddr *) &socketname, sizeof socketname) < 0) {
+d1232 1
+a1232 1
+		return ERR;
+d1236 1
+a1236 1
+	if (UseTLS == YES) {
+d1238 2
+a1239 1
+		ssl = SSL_new (ctx);
+d1242 1
+a1242 1
+			return ERR;
+d1244 2
+a1245 1
+		SSL_set_fd (ssl,fd);
+d1250 1
+a1250 1
+			return ERR;
+d1259 4
+a1262 4
+		server_cert = SSL_get_peer_certificate (ssl);
+		if(!server_cert)
+		return ERR;
+
+d1270 1
+a1270 1
+	return fd;
+d1274 1
+a1274 2
+* getOkFromSmtp -- get a line and test the three-number string
+*      at the beginning.  If it starts with a 2, it's OK.
+d1283 1
+a1283 2
+* getFromSmtp -- get a line and return the initial digit.  Deal with
+*      continuation lines by reading to the last (non-continuation) line.
+d1285 1
+a1285 2
+int 
+getFromSmtp (int fd, char *response)
+d1287 1
+a1287 1
+	char *getLine ();
+d1290 4
+a1293 3
+		if (getLine (response, MAXLINE, fd) == NULL) {
+			*response = '\0';
+			return NO;
+d1296 1
+a1296 1
+	while (response[3] == '-');
+d1298 2
+a1299 2
+	if (LogLevel > 0) {
+		log_event (LOG_INFO, "Received \"%s\" from smtp port.\n", response);
+d1301 1
+d1309 1
+a1309 2
+	if (UseTLS==YES) { 
+
+d1320 1
+a1320 2
+char *
+getLine (char *line, int size, int fd)
+d1322 1
+a1323 1
+	char ch;
+d1325 2
+a1326 2
+	for(i = 0; wrap_read (fd, &ch, 1) == 1;) {
+		if (i == size - 1) {
+d1328 3
+a1330 2
+			line[i] = '\0';
+			return line;
+d1332 2
+a1333 3
+		else if (ch == '\r')
+		;			/* Strip it. */
+		else if (ch == '\n') {
+d1339 1
+a1339 1
+			line[i] = '\0';
+d1343 20
+a1362 2
+	line[i] = '\0';
+	return line;
+d1379 1
+a1379 1
+	ProgName = argv[0];
+d1382 1
+a1382 2
+		die ("can't find the name of this host, %s, exiting.",
+		"(an impossible condition)");
+d1386 1
+a1386 2
+		die ("couldn't find password entry for sender (uid %d).",
+		getuid());
+d1394 1
+a1395 1
+	/*@@NOTREACHED@@*/
+@
+
+
+1.9
+log
+@Code removal and clean-up (partially complete)
+@
+text
+@d2 1
+a2 1
+* $Id$
+d466 1
+a466 2
+void 
+flush(void)
+a471 1
+
+a472 1
+
+a477 1
+
+a479 1
+
+d484 1
+d489 1
+a490 1
+
+d493 2
+a494 3
+
+			log_event(LOG_ERR, "Can't open %s, failing horribly.",
+			line);
+d500 1
+a501 1
+
+d504 1
+a505 1
+
+a506 1
+
+a514 9
+* Reporting and logging library functions 
+*/
+
+
+/*
+* Local/peculiar string manipulation.
+*/
+
+/*
+d517 1
+a517 2
+void 
+standardise(char *p)
+a522 1
+
+a530 1
+
+d543 1
+a543 2
+void 
+parseConfig(FILE * fp)
+a547 1
+
+a549 1
+
+d552 1
+d555 2
+a556 1
+		continue;
+a559 1
+
+d561 1
+a562 1
+				Root = strdup(q);
+a563 1
+
+a568 1
+
+a573 1
+
+a581 1
+
+a583 1
+
+a590 1
+
+a593 1
+
+a600 1
+
+a605 1
+
+a620 1
+
+a625 1
+
+a630 1
+
+d632 1
+a632 1
+				UseTLSCert = YES;
+d634 2
+a635 1
+				UseTLSCert = NO;
+a636 1
+
+d984 1
+a984 2
+int 
+ssmtp(char *argv[])
+a989 1
+
+d992 1
+d995 1
+a995 1
+	fullName = strdup(p);
+a997 1
+
+d1021 1
+a1022 1
+
+d1031 1
+a1031 2
+	if (setjmp (TimeoutJmpBuf) != 0) {
+
+d1033 1
+a1033 1
+		die ("connection lost in middle of processing, exiting.");
+d1035 1
+a1036 1
+
+a1040 1
+
+d1043 1
+d1045 3
+a1048 2
+		(void) fprintf (stderr, "Connected to smtp server %s\n", MailHub);
+	}
+d1050 1
+a1050 2
+
+		log_event (LOG_INFO, "Connected to smtp server %s\n", MailHub);
+d1053 1
+a1053 1
+	/* if user supplied username and password, then try ELHO */
+d1056 6
+a1061 4
+	if (authUsername)
+	putToSmtp (fd, "EHLO %s", HostName);
+	else
+	putToSmtp (fd, "HELO %s", HostName);
+a1062 1
+	if (getOkFromSmtp (fd, buffer) == NO) {
+d1064 3
+a1066 2
+		die ("server didn't accept hostname %s, replied \"%s\".",
+		HostName, buffer);
+d1069 2
+a1070 3
+	/* try to log in if username was supplied */
+	if (authUsername) {
+
+d1073 3
+a1075 4
+		putToSmtp (fd, "AUTH LOGIN %s", buffer);
+		(void) alarm ((unsigned) MEDWAIT);
+		if (getFromSmtp (fd, buffer) != 3) {
+
+a1082 1
+
+d1089 1
+a1089 1
+		putToSmtp (fd, "MAIL FROM:<%s>", stripFromLine(msgFromLine));
+d1093 1
+a1093 1
+	putToSmtp (fd, "MAIL FROM:<%s>", (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+d1096 1
+d1104 3
+a1106 2
+	if (LogLevel > 0) {
+		log_event (LOG_INFO, "Server accepted MAIL FROM: %s line.\n", stripFromLine(fromLine));
+d1119 1
+a1119 2
+				die ("smtp server didn't accept RCPT To: command, replied \"%s\".",
+				buffer);
+d1133 1
+a1133 2
+					die ("smtp server didn't accept RCPT To: command, replied \"%s\".",
+					buffer);
+d1139 1
+d1143 1
+d1151 1
+a1151 1
+	if (getFromSmtp (fd, buffer) != 3) {
+d1153 1
+a1153 2
+		die ("smtp server didn't accept DATA, replied \"%s\".",
+		buffer);
+d1155 1
+d1157 1
+a1157 1
+		(void) fprintf (stderr, "Message body transmission started.\n");
+d1161 2
+a1162 2
+	addInitialHeaders (fd);
+	addRequiredHeaders (fd);
+d1164 2
+a1165 2
+		putToSmtp (fd, "%s", p);
+		(void) alarm ((unsigned) MEDWAIT);
+d1167 1
+d1169 2
+a1170 2
+	putToSmtp (fd, "");		/* Seperate headers and body. */
+	while (fgets (buffer, sizeof buffer, stdin) != NULL) {
+d1172 3
+a1174 3
+		standardise (buffer);
+		putToSmtp (fd, "%s", buffer);
+		(void) alarm ((unsigned) MEDWAIT);
+d1177 1
+a1177 1
+	putToSmtp (fd, ".");
+d1180 2
+a1181 1
+	if (getOkFromSmtp (fd, buffer) == NO) {
+d1185 3
+a1187 2
+	if (Verbose) {
+		(void) fprintf (stderr, "Message body transmission complete.\n");
+d1189 1
+d1191 9
+a1199 7
+	(void) signal (SIGALRM, SIG_IGN);
+	putToSmtp (fd, "QUIT");
+	(void) getOkFromSmtp (fd, buffer);
+	(void) close (fd);
+	(void) log_event (LOG_INFO, "%s sent mail for %s",
+		ProgName, Sender->pw_name);
+	return 0;
+@
+
+
+1.8
+log
+@Added patch for alternate SMTP port
+@
+text
+@d2 16
+a17 14
+ * sSMTP sendmail -- send messages via smtp to a mailhub for local delivery 
+ *      or forwarding. This program is used in place of /usr/lib/sendmail,
+ *      called by /bin/mail (et all).   sSMTP does a selected subset of 
+ *      sendmail's standard tasks (including exactly one rewriting task), and
+ *      explains if you ask it to do something it can't.  It then sends
+ *      the mail to the mailhub via an smtp connection.  Believe it or not,
+ *      this is nothing but a filter.  You can receive mail with inetd, an
+ *      inverse filter and /bin/mail -d.
+ *
+ * See COPYRIGHT for the license.
+ * 
+ * See CHANGELOG for the list of changes.
+ * 
+ */
+d21 2
+a22 2
+#include <pwd.h>		/* For getpwent. */
+#include <sys/types.h>		/* For sockets. */
+d26 1
+d33 2
+a34 1
+#include <signal.h>		/* For the timer and signals. */
+d42 1
+a42 1
+#include "string_ext.h"		/* Local additions. */
+d46 8
+d69 2
+a70 2
+                                   from-line of the envelope as in the
+                                   From:-line? */
+d74 1
+a74 1
+				 with the -f option */
+d83 3
+a85 3
+                                           line was a "To:", "CC:" or a
+                                           "Bcc:", otherwise zero. */
+int LogLevel =			/* Tell the log what's happening. */
+d87 1
+a87 1
+1;
+d89 1
+a89 1
+0;
+d95 4
+d100 1
+a100 1
+#include "arpadate.c"
+d112 2
+d115 3
+a117 11
+/*
+ * log_event -- log something to syslog and the log file.
+ */
+/*VARARGS */
+void 
+log_event (syslog_code, format, p1, p2, p3, p4, p5)
+     int syslog_code;
+     char *format, *p1, *p2, *p3, *p4, *p5;
+{
+#ifdef SYSLOG
+  static int syslogOpen = NO;
+a118 2
+#ifdef LOGFILE
+  FILE *fp;
+d120 6
+a125 23
+  if ((fp = fopen ("/tmp/ssmtp.log", "a")) != NULL)
+    {
+      (void) fprintf (fp, format, p1, p2, p3, p4, p5);
+      (void) putc ('\n', fp);
+      (void) fclose (fp);
+    }
+  else
+    {
+      /* oops! */
+      (void) fprintf (stderr, "Can't write to /tmp/ssmtp.log\n");
+    }
+#endif
+#ifdef SYSLOG
+  if (syslogOpen == NO)
+    {
+      syslogOpen = YES;
+#ifdef OLDSYSLOG
+      openlog ("sSMTP mail", LOG_PID);
+#else
+      openlog ("sSMTP mail", LOG_PID, LOG_MAIL);
+#endif
+    }
+  (void) syslog (syslog_code, format, p1, p2, p3, p4, p5);
+d127 1
+a129 2
+void flush (void);
+
+d131 3
+a133 6
+ * die -- say something and exit with a non-zero return code.
+ *      Save the message on stdin in dead.letter.
+ */
+void 
+die (format, p1, p2, p3, p4, p5)
+     char *format, *p1, *p2, *p3, *p4, *p5;
+d135 6
+a140 7
+  (void) fprintf (stderr, "%s: ", ProgName);
+  (void) fprintf (stderr, format, p1, p2, p3, p4, p5);
+  (void) putc ('\n', stderr);
+  flush ();			/* Send message to dead.letter */
+  log_event (LOG_ERR, format, p1, p2, p3, p4, p5);
+  exit (1);
+}
+d142 3
+a144 16
+/*
+ * putToSmtp -- a printf to an fd, which appends TCP/IP <CR/LF>.
+ */
+void 
+putToSmtp (int fd, char *format,...)
+{
+  va_list args;
+  char line[MAXLINE];
+  va_start (args, format);
+  if(vsnprintf (line, MAXLINE-3, format, args) == -1) {
+    die("buffer overflown in putToSmtp"); 
+  }
+  if (LogLevel > 0)
+    {
+      log_event (LOG_INFO, "Sent \"%s\" to smtp port.\n", line);
+    }
+d146 1
+a146 1
+  printf("%s\n",line);
+d148 3
+a150 3
+  (void) strcat (line, "\r\n");
+  (void) write (fd, line, strlen (line));
+  va_end (args);
+d159 2
+a160 2
+ * Supporting libraries -- header insertion.
+ */
+d162 1
+a162 1
+  hasDate = NO;
+a163 8
+  
+/*
+ * parseaddr.c	Read a valid RFC822 address with all the comments
+ *		etc in it, and return _just_ the email address.
+ *
+ * Version:	@@(#)parseaddr.c  1.00  02-Apr-1999  miquels@@cistron.nl
+ *
+ */
+d165 2
+a166 1
+#include <ctype.h>
+d168 5
+a172 4
+struct token {
+	struct token *next;
+	char word[1];
+};
+d174 1
+a174 1
+#define SKIPSPACE(p) do { while(*p && isspace(*p)) p++; } while(0)
+d176 4
+a179 6
+/*
+ *	Skip everything between quotes.
+ */
+static void quotes(char **ptr)
+{
+	char		*p = *ptr;
+d181 11
+a191 4
+	p++;
+	while (*p && *p != '"') {
+		if (*p == '\\' && p[1])
+			p++;
+d194 8
+a201 1
+	*ptr = p;
+d205 3
+a207 3
+ *	Return the next token. A token can be "<>()," or any "word".
+ */
+static struct token *gettoken(char **ptr)
+a208 4
+	struct token	*tok;
+	char		*p = *ptr;
+	char		*begin;
+	int		l, quit = 0;
+d210 1
+a210 2
+	SKIPSPACE(p);
+	begin = p;
+d212 4
+a215 22
+	while (!quit) {
+		switch (*p) {
+			case 0:
+			case ' ':
+			case '\t':
+			case '\n':
+				quit = 1;
+				break;
+			case '(':
+			case ')':
+			case '<':
+			case '>':
+			case ',':
+				if (p == begin) p++;
+				quit = 1;
+				break;
+			case '\\':
+				if (p[1]) p++;
+				break;
+			case '"':
+				quotes(&p);
+				break;
+d217 2
+a218 1
+		if (!quit) p++;
+d221 8
+a228 13
+	l = p - begin;
+	if (l == 0) return NULL;
+	if ((tok = malloc(sizeof(struct token) + l)) == NULL)
+		return NULL;
+	tok->next = NULL;
+	strncpy(tok->word, begin, l);
+	tok->word[l] = 0;
+
+	SKIPSPACE(p);
+	*ptr = p;
+
+	return tok;
+}
+d230 1
+a230 32
+/*
+ *	Get email address from rfc822 address.
+ */
+int parseaddr(char *addr, char *buf, int bufsz)
+{
+	char		*p;
+	struct token	*t, *tok, *last;
+	struct token	*brace = NULL;
+	int		comment = 0;
+
+	tok = last = NULL;
+
+	/*
+	 *	Read address, remove comments right away.
+	 */
+	p = addr;
+	while ((t = gettoken(&p)) != NULL && t->word[0] != ',') {
+		if (t->word[0] == '(' || t->word[0] == ')' || comment) {
+			if (t->word[0] == '(')
+				comment++;
+			if (t->word[0] == ')')
+				comment--;
+			free(t);
+			continue;
+		}
+		if (t->word[0] == '<')
+			brace = t;
+		if (tok)
+			last->next = t;
+		else
+			tok = t;
+		last = t;
+d232 2
+d235 1
+a235 18
+	/*
+	 *	Put extracted address into "buf"
+	 */
+	buf[0] = 0;
+	t = brace ? brace->next : tok;
+	for (; t && t->word[0] != ',' && t->word[0] != '>'; t = t->next) {
+		if (strlen(t->word) >= bufsz)
+			return -1;
+		bufsz -= strlen(t->word);
+		strcat(buf, t->word);
+	}
+
+	/*
+	 *	Free list of tokens.
+	 */
+	for (t = tok; t; t = last) {
+		last = t->next;
+		free(t);
+d237 3
+d241 14
+a254 1
+	return 0;
+a256 37
+void 
+recordRecipient (char *line)
+{
+  char buf[MAXLINE];
+  char *newaddr;
+  char *p = line;
+
+  while ( *p )
+    {
+      if ( *p == '"' )
+        {
+	  quotes( &p );
+	}
+      else if ( *p == ',' )
+        {
+	  *p = '\0';
+	  parseaddr( line, buf, MAXLINE );
+	  newaddr = strdup( buf );
+
+	  if ( ( rec - recipients ) > 100-1 )
+	    {
+	      die("too many recipients");
+	    }
+	  *rec++ = newaddr;
+	  line = p+1;
+	}
+      p++;
+    }
+  parseaddr( line, buf, MAXLINE );
+  newaddr = strdup( buf );
+
+  if ( ( rec - recipients ) > 100-1 )
+    {
+      die("too many recipients");
+    }
+  *rec++ = newaddr;
+}
+d258 6
+a263 5
+/*
+ * recordRequiredHeaders -- note which ones we've seen.
+ */
+void 
+recordRequiredHeaders (char *line)
+d265 2
+d268 1
+a268 7
+  if (*line == ' ' || *line == '\t')
+    {
+      if (previous_recipient_header)
+	{
+	  recordRecipient (line + 1);
+	  /* Keep previous_recipient_header set to non-zero. */
+	}
+d270 1
+a270 2
+      return;
+    }
+d272 3
+a274 1
+  previous_recipient_header = 0;
+d276 4
+a279 20
+  if (strncasecmp (line, "From:", 5) == 0)
+    {
+      hasFrom = YES;
+    }
+#ifdef HASTO_OPTION
+  else if (strncasecmp(line,"To:",3)==0)
+    {
+      hasTo = YES;
+    }
+#endif
+  else if (strncasecmp (line, "Date:", 5) == 0)
+    {
+      hasDate = YES;
+    }
+  if (Toption)
+    {	/* Need to figure out recipients from the e-mail */
+      if (strncasecmp (line, "To:", 3) == 0)
+	{
+	  recordRecipient (line + 4);
+	  previous_recipient_header = 1;
+d281 5
+a285 4
+      else if (strncasecmp (line, "Bcc:", 4) == 0)
+	{
+	  recordRecipient (line + 5);
+	  previous_recipient_header = 1;
+a286 37
+      else if (strncasecmp (line, "CC:", 3) == 0)
+	{
+	  recordRecipient (line + 4);
+	  previous_recipient_header = 1;
+	}
+    }
+}
+
+
+/* 
+ * stripFromLine -- transforms "Name <login@@host>" into "login@@host"
+ *                  or "login@@host (Real name)"
+ */
+char *
+stripFromLine(char *buffer) {
+  static char fLine[MAXLINE];
+  char *c,*p;
+
+  if(!strncmp("From: ", buffer, 6)) buffer += 6;
+
+  strncpy(fLine, buffer, MAXLINE);
+
+  /* Remove the real name if necessary - just send the address */
+  c = strchr (fLine, '<');
+  if (c)
+    {
+      c++;
+      p = strchr (c, '>');
+      if (p)
+	*p = '\0';
+    }
+  else {
+    c = fLine;
+    p = strchr(fLine, ' ');
+    if (p)
+      *p = '\0';
+  }
+d288 1
+a288 1
+  return c;
+d292 2
+a293 2
+ * addRequiredHeaders -- add ones that have been missed.
+ */
+d295 1
+a295 1
+addRequiredHeaders (int fd)
+d298 9
+a306 9
+  if (hasFrom == NO)
+    {
+      /* No From: line; add the sender specified in the command line or
+	 generate one */
+      if (specifiedName == NULL)
+        putToSmtp (fd, "From: %s", (specifiedFrom!=NULL) ? specifiedFrom : fromLine);
+      else
+        putToSmtp (fd, "From: %s <%s>", specifiedName, (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+    }
+d308 4
+a311 4
+  if (hasTo == NO)
+    {
+      putToSmtp(fd,"To: postmaster");
+    }
+d313 4
+a316 4
+  if (hasDate == NO)
+    {
+      putToSmtp (fd, "Date: %s", DateString);
+    }
+d320 3
+a322 3
+ * addInitialHeaders -- prepend prerequisite timstamp
+ *      and actual date lines.
+ */
+d324 1
+a324 1
+addInitialHeaders (int fd)
+d327 2
+a328 2
+  putToSmtp (fd, "Received: by %s (sSMTP sendmail emulation); %s",
+	     HostName, DateString);
+d334 3
+a336 3
+ * fixFromLine -- replace whole From: header with standardised pattern.
+ *      Evil, nasty, immoral header-rewriting code (:-)).
+ */
+d338 1
+a338 1
+fixFromLines (char *line)
+d340 3
+a342 1
+  static int inHeaders = YES;
+d344 12
+a355 14
+  if (strncasecmp (line, "From:", 5) == 0)
+    {
+      if (FromLineOverride)
+        msgFromLine = strdup(line);
+      else
+        if(snprintf (line, MAXLINE, "From: %s", fromLine) == -1) {
+	  die("buffer overflown in fixFromLines");
+	}
+    }
+  if (*line == (char) NULL)
+    {
+      inHeaders = NO;
+    }
+  return inHeaders;
+d367 1
+a367 1
+			s, UseRD == YES ? RewriteDomain : HostName) == -1) {
+d379 5
+a383 5
+ * properRecipient -- alias systems-level users to the person who
+ *      reads their mail.  This is variously the owner of a workstation,
+ *      the sysadmin of a group of stations and the postmaster otherwise.
+ *      We don't just mail stuff off to root on the mailhub (:-)).
+ */
+d385 1
+a385 1
+properRecipient (char *s)
+d387 10
+a396 1
+  struct passwd *p;
+d398 3
+a400 12
+  if (strchr (s, '@@')
+      || (p = getpwnam (s)) == NULL
+      || p->pw_uid > MAXSYSUID)
+    {
+      /* It's not a local systems-level user. */
+      return addDomainToAddr(s);
+    }
+  else
+    {
+      return addDomainToAddr(Root);
+    }
+  /*@@NOTREACHED@@*/
+d404 3
+a406 3
+ * localFromLine -- generate a from line in standard format
+ * ("Real Name <id@@site>" or "id@@site") based on local user and host names.
+ */
+d408 1
+a408 1
+localFromLine (void)
+d410 5
+a414 5
+  static char buffer[MAXLINE];
+  if (fullName) {
+    if(snprintf (buffer, MAXLINE, "%s <%s@@%s>",
+                    fullName,
+		    Sender->pw_name,
+d416 1
+a416 1
+		    UseRD == YES ? RewriteDomain : HostName
+d418 1
+a418 1
+		    HostName
+d420 7
+a426 7
+    		    ) == -1) {
+      die("Buffer overflown in fromLine");
+    }
+  }
+  else {
+    if(snprintf (buffer, MAXLINE, "%s@@%s",
+		    Sender->pw_name,
+d428 1
+a428 1
+		    UseRD == YES ? RewriteDomain : HostName
+d430 1
+a430 1
+		    HostName
+d432 4
+a435 4
+		    ) == -1) {
+	die("Buffer overflown in fromLine");
+      }
+  }
+d437 1
+a437 1
+  fprintf(stderr,"Fromline generated: %s (%s)",buffer,RewriteDomain);
+d439 1
+a439 1
+  fromLine = strdup (buffer);
+d443 2
+a444 2
+ * Supporting libraries -- signals
+ */
+d446 6
+a451 6
+ * alarmHandler -- a ``normal'' non-portable version of an alarm handler.
+ *      Alas, setting a flag and returning is not fully functional in
+ *      BSD: system calls don't fail when reading from a ``slow'' device
+ *      like a socket. So we longjump instead, which is erronious on
+ *      a small number of machines and ill-defined in the language.
+ */
+d453 1
+a453 1
+alarmHandler (void)
+d455 2
+a456 2
+  extern jmp_buf TimeoutJmpBuf;
+  longjmp (TimeoutJmpBuf, (int) 1);
+d460 2
+a461 2
+ * emergency exit functions.
+ */
+d464 2
+a465 2
+ * flush -- save stdin to dead.letter, if you can.
+ */
+d467 1
+a467 1
+flush (void)
+d469 12
+a480 2
+  char line[MAXLINE];
+  FILE *fp;
+d482 10
+a491 5
+  if (isatty (fileno (stdin)))
+    {
+      if (LogLevel > 0)
+	{
+	  log_event (LOG_ERR, "stdin appears to be a terminal. Not saving to dead.letter.");
+d493 9
+a501 8
+      return;
+    }
+  if (Sender == NULL)
+    {
+      /* Far to early to save things. */
+      if (LogLevel > 0)
+	{
+	  log_event (LOG_ERR, "No sender (can't happen), failing horribly.");
+d503 5
+a507 13
+      return;
+    }
+  if(snprintf (line, MAXLINE, "%s/dead.letter", Sender->pw_dir) == -1) {
+    /* can't use die() here since flush() is called from die() */
+    exit(1);
+  }
+  if ((fp = fopen (line, "a")) == NULL)
+    {
+      /* Perhaps the person doesn't have a homedir... */
+      if (LogLevel > 0)
+	{
+	  log_event (LOG_ERR, "Can't open %s, failing horribly.",
+		     line);
+d509 8
+a516 15
+      return;
+    }
+  (void) putc ('\n', fp);	/* Make sure we start on a new line, */
+  (void) putc ('\n', fp);	/* with a blank line separating messages. */
+  while (fgets (line, sizeof line, stdin))
+    {
+      (void) fputs (line, fp);
+    }
+  if (fclose (fp) == ERR)
+    {
+      if (LogLevel > 0)
+	{
+	  log_event (LOG_ERR,
+		     "Can't close %s/dead.letter, possibly truncated.",
+		     Sender->pw_dir);
+a517 1
+    }
+d521 2
+a522 2
+ * Reporting and logging library functions 
+ */
+d526 2
+a527 2
+ * Local/peculiar string manipulation.
+ */
+d530 2
+a531 2
+ * standardise -- trim off '\n's, double leading dots.
+ */
+d533 1
+a533 1
+standardise (char *p)
+d535 13
+a547 2
+  size_t n;
+  char *q;
+d549 6
+a554 17
+  if ((q = strchr(p, '\n')))
+    {
+      *q = '\0';
+    }
+
+  /* Any line beginning with a dot has an additional dot inserted;
+     not just a line consisting solely of a dot.  Thus we have to
+     slide the buffer down one.  */
+  n = strlen (p);
+  if (*p == '.')
+    {
+      if (n + 2 > MAXLINE)
+	die ("buffer overflown in standardise");
+
+      memmove (p + 1, p, n + 1);  /* copy trailing \0 too */
+      *p = '.';
+    }
+d558 3
+a560 3
+ * parseConfig -- parse config file, extract values of a few
+ *      predefined variables.
+ */
+d562 1
+a562 1
+parseConfig (FILE * fp)
+d564 6
+a569 1
+  char line[MAXLINE], *p, *q, *r;
+d571 1
+a571 45
+  while (fgets (line, sizeof line, fp))
+    {
+      /* Make comments invisible. */
+      if ((p = strchr (line, '#')))
+	{
+	  *p = '\0';
+	}
+      /* Ignore malformed lines and comments. */
+      if (strchr (line, '=') == NULL)
+	continue;
+      /* Parse out keywords. */
+      if (((p = strtok (line, "= \t\n")) != NULL)
+	  && ((q = strtok (NULL, "= \t\n:")) != NULL))
+	{
+	  if (strcasecmp (p, "Root") == 0)
+	    {
+	      Root = strdup (q);
+	      if (LogLevel > 0)
+		{
+		  log_event (LOG_INFO,
+			     "Set Root=\"%s\".\n", Root);
+		}
+	    }
+	  else if (strcasecmp (p, "MailHub") == 0)
+	    {
+	      MailHub = strdup (q);
+	      PortNum = 0;
+              if ((r = strtok (NULL, "= \t\n:")) != NULL) PortNum = atoi(r);
+	      if (PortNum == 0) PortNum = PORTNUMBER;
+	      if (LogLevel > 0)
+		{
+		  log_event (LOG_INFO,
+			     "Set MailHub=\"%s\".\n", MailHub);
+		  log_event (LOG_INFO,
+			     "via SMTP Port Number=\"%d\".\n", PortNum);
+                  
+		}
+	    }
+	  else if (strcasecmp (p, "HostName") == 0)
+	    {
+	      (void) strcpy (HostName, strdup (q));
+	      if (LogLevel > 0)
+		{
+		  log_event (LOG_INFO,
+			     "Set HostName=\"%s\".\n", HostName);
+d573 40
+a612 1
+	    }
+d615 76
+a690 31
+	  else if (strcasecmp (p, "RewriteDomain") == 0)
+	    {
+	      RewriteDomain = strdup (q);
+	      UseRD = YES;
+	      if (LogLevel > 0)
+		{
+		  log_event (LOG_INFO,
+			     "Set RewriteDomain=\"%s\".\n",
+			     RewriteDomain);
+		}
+	    }
+#endif
+          else if (strcasecmp (p, "FromLineOverride") == 0)
+            {
+              if (strcasecmp(q, "yes") == 0)
+                FromLineOverride = YES;
+              else
+                FromLineOverride = NO;
+              if (LogLevel > 0)
+                {
+                  log_event (LOG_INFO,
+                             "Set FromLineOverride=\"%s\".\n",
+                             FromLineOverride ? "YES" : "NO");
+                }
+            }
+	  else
+	    {
+	      log_event (LOG_INFO,
+			 "Unable to set %s=\"%s\".\n",
+			 p, q);
+	    }
+d692 1
+a692 2
+    }
+  return;
+d696 2
+a697 2
+ * Config file access routines.
+ */
+d699 1
+a699 1
+getConfig (void)
+d701 2
+a702 11
+  FILE *fp;
+  static char *locations[] =
+  {
+    CONFIGURATION_FILE,
+    NULL
+  };
+  char **lp;
+
+  for (lp = &locations[0]; *lp; lp++)
+    {
+      if ((fp = fopen (*lp, "r")) != NULL)
+d704 2
+a705 3
+	  parseConfig (fp);
+	  (void) fclose (fp);
+	  return YES;
+d707 13
+a719 2
+    }
+  return NO;			/* We use the default for everything. */
+d723 3
+a725 3
+ * getReverseAliases -- parse the reverse alias file, fix globals to use
+ * any entry for sender.
+ */
+d727 1
+a727 1
+getReverseAliases ()
+d729 49
+a777 49
+  FILE *rev_file;
+  static char buffer[MAXLINE];
+  char line[MAXLINE], *p, *r;
+  /* Try to open the reverse aliases file */
+  rev_file = fopen (REVALIASES_FILE, "r");
+  /* Search if a reverse alias is definied for the sender */
+  if (rev_file)
+    {
+      while (fgets (line, sizeof line, rev_file))
+	{
+	  /* Make comments invisible. */
+	  if ((p = strchr (line, '#')))
+	    {
+	      *p = '\0';
+	    }
+	  /* Ignore malformed lines and comments. */
+	  if (strchr (line, ':') == NULL)
+	    continue;
+	  /* Parse the alias */
+	  if (((p = strtok (line, ":")) != NULL)
+	      && !strcmp (p, Sender->pw_name))
+	    {
+	      p = strtok (NULL, ": \t\r\n");
+	      if (p)
+		{
+		  if (fullName)
+		    (void) sprintf (buffer, "\"%s\" <%s>", fullName, p);
+		  else
+		    (void) sprintf (buffer, "%s", p);
+		  fromLine = strdup (buffer);
+		}
+	      p = strtok (NULL, " \t\r\n:");
+	      if (p)
+	        {
+	          MailHub = strdup (p);
+	      	  PortNum = 0;
+		  if ((r = strtok (NULL, " \t\r\n:")) != NULL) PortNum = atoi(r);
+	          if (PortNum == 0) PortNum = PORTNUMBER;
+	          if (LogLevel > 0)
+		    {
+		      log_event (LOG_INFO,
+			         "Set MailHub=\"%s\".\n", MailHub);
+		      log_event (LOG_INFO,
+			         "via SMTP Port Number=\"%d\".\n", PortNum);
+		    }
+	        }
+	    }
+	}
+    }
+d781 3
+a783 3
+ * doOptions -- pull the options out of the command-line, process them 
+ *      (and special-case calls to mailq, etc), and return the rest.
+ */
+d785 1
+a785 1
+doOptions (int argc, char *argv[])
+d787 5
+a791 2
+  int i, j, add, newArgC;
+  static char *newArgV[MAXARGS];
+d793 1
+a793 2
+  newArgV[0] = argv[0];
+  newArgC = 1;
+d795 9
+a803 20
+  if (strstr (argv[0], "mailq") != NULL)
+    {
+      /* Someone wants to know the queue state... */
+      (void) printf ("Mail queue is empty.\n");
+      exit (0);
+    }
+  else if (strstr (argv[0], "newalias") != NULL)
+    {
+      /* Someone wanted to recompile aliases. */
+      /* This is slightly more like to be a human... */
+      die ("newalias is meaningless to sSMTP: it doesn't do aliases.");
+    }
+
+  i = 1;
+  while (i < argc)
+    {
+      if (argv[i][0] != '-')
+	{
+	  newArgV[newArgC++] = argv[i++];
+	  continue;
+d805 13
+a817 4
+      j = 0;
+      add = 1;
+      while (argv[i][++j] != '\0')
+	{
+d819 1
+a819 1
+	  printf("%c", argv[i][j]);
+d821 165
+a985 165
+	  switch (argv[i][j])
+	    {
+	    case 'a':
+	      switch (argv[i][++j])
+	        {
+		 case 'u':
+		  if (!argv[i][j+1]) 
+		  {
+		    authUsername = strdup(argv[i+1]);
+		    add++;
+		  }
+		  else 
+		    authUsername = strdup(argv[i]+j+1);
+		  goto exit;
+		 case 'p':
+		  if (!argv[i][j+1]) 
+		  {
+		    authPassword = strdup(argv[i+1]);
+		    add++;
+		  }
+		  else 
+		    authPassword = strdup(argv[i]+j+1);
+		  goto exit;
+		}
+	      goto exit;
+
+	    case 'b':
+	      switch (argv[i][++j])
+		{
+		case 'a':		/* ARPANET mode. */
+		  die ("-ba is not supported by sSMTP sendmail, nor is -t.");
+		case 'd':		/* Run as a daemon. */
+		  die ("-bd is not supported by sSMTP sendmail. Use rSMTP under inetd instead.");
+		case 'i':		/* Initialise aliases. */
+		  continue;
+		case 'm':		/*  Default addr processing. */
+		  continue;
+		case 'p':		/* Print mailqueue. */
+		  die ("Mail queue is empty.");
+		case 's':		/* Read smtp from stdin. */
+		  die ("-bs is not supported by sSMTP sendmail.");
+		case 't':		/* Test mode. */
+		  die ("-bt is meaningless to sSMTP sendmail. It doesn't route.");
+		case 'v':		/*  Verify names only. */
+		  die ("-bv is meaningless to sSMTP sendmail. It doesn't route.");
+		case 'z':		/* Create  freeze file. */
+		  die ("-bz is meaningless to sSMTP sendmail. It isn't programmable.");
+		}
+	    case 'C':		/* Configfile name. */
+	      goto exit;
+	    case 'd':		/* Debug. */
+	      LogLevel = 1;
+	      Verbose = YES;	/* Almost the same thing... */
+	      continue;
+	    case 'E':		/* insecure channel, don't trust userid. */
+	      continue;
+	    case 'R':
+	      if (!argv[i][j+1]) {	/* amount of the message to be returned */
+		add++;
+		goto exit;
+	      }
+	      else {		/* Process queue for recipient. */
+		continue;
+	      }
+	    case 'F':		/* fullname of sender. */
+	      if (!argv[i][j+1]) {
+		specifiedName = strdup(argv[i+1]);
+		add++;
+	      }
+	      else {
+		specifiedName = strdup(argv[i]+j+1);
+	      }
+	      goto exit;
+	    case 'f':		/* Set from/sender address. */
+	    case 'r':		/* Obsolete -f flag. */
+	      if (!argv[i][j+1]) {
+		specifiedFrom = strdup(argv[i+1]);
+		add++;
+	      }
+	      else {
+		specifiedFrom = strdup(argv[i]+j+1);
+	      }
+	      strcpy(specifiedFrom, stripFromLine(specifiedFrom));
+	      goto exit;
+	      /* Should I support these??? When? */
+	    case 'h':		/* Set hopcount. */
+	      continue;
+	    case 'm':		/* Ignore originator in adress list. */
+	      continue;
+	    case 'M':		/* Use specified message-id. */
+	      goto exit;
+	    case 'N':		/* dsn options */
+	      add++;
+	      goto exit;
+	    case 'n':		/* No aliasing. */
+	      continue;
+	    case 'o':
+	      switch (argv[i][++j])
+		{
+		case 'A':		/* Alternate aliases file. */
+		  goto exit;
+		case 'c':		/* Delay connections. */
+		  continue;
+		case 'D':		/* Run newaliases if rqd. */
+		  continue;
+		case 'd':		/* Deliver now, in background or queue. */
+		  /* This may warrant a diagnostic for b or q. */
+		  continue;
+		case 'e':		/* Errors: mail, write or none. */
+		  continue;
+		case 'F':		/* Set tempfile mode. */
+		  goto exit;
+		case 'f':		/* Save ``From ' lines. */
+		  continue;
+		case 'g':		/* Set group id. */
+		  goto exit;
+		case 'H':		/* Helpfile name. */
+		  continue;
+		case 'i':		/* DATA ends at EOF, not \n.\n */
+		  continue;
+		case 'L':		/* Log level. */
+		  goto exit;
+		case 'm':		/* Send to me if in the list. */
+		  continue;
+		case 'o':		/* Old headers, spaces between adresses. */
+		  die ("-oo (old header format) is not supported by sSMTP sendmail.");
+		case 'Q':		/* Queue dir. */
+		  goto exit;
+		case 'r':		/* Read timeout. */
+		  goto exit;
+		case 's':		/* Always init the queue. */
+		  continue;
+		case 'S':		/* Stats file. */
+		  goto exit;
+		case 'T':		/* Queue timeout. */
+		  goto exit;
+		case 't':		/* Set timezone. */
+		  goto exit;
+		case 'u':		/* Set uid. */
+		  goto exit;
+		case 'v':		/* Set verbose flag. */
+		  Verbose = YES;
+		  continue;
+		}
+	      break;
+	    case 'q':		/* Process the queue [at time] */
+	      die ("Mail queue is empty.");
+	    case 't':		/* Read message's To/Cc/Bcc lines. */
+	      Toption = YES;
+	      continue;
+	    case 'v':		/* Verbose (ditto -ov). */
+	      Verbose = YES;
+	      break;
+	    case 'V':		/*  Say version and quit. */
+	      /* Similar as die, but no logging */
+	      fprintf (stderr,
+		       "sSMTP version %s (not sendmail at all)\n",
+		       Version);
+	      flush ();		/* Send message to dead.letter */
+	      exit (0);
+	      break;
+	    }
+	}
+    exit:
+      i += add;
+d987 1
+a987 1
+      printf("\n");
+d989 9
+a997 9
+    }
+  newArgV[newArgC] = NULL;
+  if (newArgC <= 1 && !Toption)
+    {
+      die ("no recipients supplied: no mail will be sent.");
+    }
+  if (newArgC > 1 && Toption)
+    die ("Recipientlist with -t option not supported.");
+  return &newArgV[0];
+d1001 1
+a1001 1
+int fixFromLines ();
+d1013 3
+a1015 3
+ * ssmtp -- send the message (exactly one) from stdin to the smtp
+ *      port on the mailhub.
+ */
+d1017 1
+a1017 1
+ssmtp (char *argv[])
+d1019 310
+a1328 2
+  char buffer[MAXLINE], *p;
+  int fd, i;
+a1329 32
+  if (getConfig () == NO)
+    {
+      log_event (LOG_INFO, "No ssmtp.conf in %s", SSMTPCONFDIR);
+    }
+  p = strtok (Sender->pw_gecos, ";,");
+  if (p)
+    fullName = strdup (p);
+  getReverseAliases ();
+  if (!fromLine)  /* no reverse alias for sender */
+    {  
+      localFromLine ();
+    }
+
+  /* Header analysis first */
+  /* allocation algorithm for header buffer missing */
+  headere = headers = malloc (CHUNK);
+  while ((fgets (buffer, sizeof buffer, stdin) != NULL) && (buffer[0] != '\n'))
+    {
+      if (Verbose)
+	fprintf (stderr, "Read Header: %s", buffer);
+      /* Trim off \n, double leading .'s */
+      standardise (buffer);
+      recordRequiredHeaders (buffer);
+      fixFromLines (buffer);
+      i = strlen (buffer) + 1;
+      if (headere + i - headers > CHUNK)
+	die ("Header too large Max is %d characters", CHUNK);
+      strcpy (headere, buffer);
+      headere += strlen (buffer) + 1;
+      if (*buffer == '\0')
+	{
+	  break;
+d1331 3
+a1333 238
+    }
+  if (Toption)
+    {
+      /* Sorry no support for the exclusions on the command line */
+      /*      argv=recipients;       */
+      *rec++ = NULL;
+    }
+
+  /* Now to the delivery of the message */
+  (void) signal (SIGALRM, (void (*)()) alarmHandler);	/* Catch SIGALRMs. */
+  (void) alarm ((unsigned) MAXWAIT);	/* Set initial timer. */
+  if (setjmp (TimeoutJmpBuf) != 0)
+    {
+      /* Then the timer has gone off and we bail out. */
+      die ("connection lost in middle of processing, exiting.");
+    }
+  if ((fd = openSocket (MailHub, PortNum)) == ERR)
+    {
+      die ("can't open the smtp port (%d) on %s.",
+	   PortNum, MailHub);
+    }
+  else if (getOkFromSmtp (fd, buffer) == NO)
+    {
+      die ("didn't get initial OK message from smtp server.");
+    }
+  if (Verbose)
+    {
+      (void) fprintf (stderr, "Connected to smtp server %s\n", MailHub);
+    }
+  if (LogLevel > 0)
+    {
+      log_event (LOG_INFO, "Connected to smtp server %s\n", MailHub);
+    }
+
+  /* if user supplied username and password, then try ELHO */
+  /* do not really know if this is required or not...      */
+  
+  if (authUsername)
+    putToSmtp (fd, "EHLO %s", HostName);
+  else
+    putToSmtp (fd, "HELO %s", HostName);
+  (void) alarm ((unsigned) MEDWAIT);
+  if (getOkFromSmtp (fd, buffer) == NO)
+    {
+      die ("server didn't accept hostname %s, replied \"%s\".",
+	   HostName, buffer);
+    }
+
+  /* try to log in if username was supplied */
+  if (authUsername)
+    {
+      memset(buffer, 0, sizeof buffer);
+      to64frombits(buffer, authUsername, strlen(authUsername));
+      putToSmtp (fd, "AUTH LOGIN %s", buffer);
+      (void) alarm ((unsigned) MEDWAIT);
+      if (getFromSmtp (fd, buffer) != 3)
+        {
+	  die ("server didn't accept AUTH LOGIN, replied \"%s\".", buffer);
+	}
+      memset(buffer, 0, sizeof buffer);
+      to64frombits(buffer, authPassword, strlen(authPassword));
+      putToSmtp (fd, "%s", buffer);
+      (void) alarm ((unsigned) MEDWAIT);
+      if (getOkFromSmtp (fd, buffer) == NO)
+        {
+	  die ("authorization failed: \"%s\".", buffer);
+	}
+    }
+  
+  /* Send "MAIL FROM:" line */
+  if (msgFromLine && FromLineOverride)
+    {
+      putToSmtp (fd, "MAIL FROM:<%s>", stripFromLine(msgFromLine));
+      free(msgFromLine);
+    }
+  else
+    putToSmtp (fd, "MAIL FROM:<%s>", (specifiedFrom!=NULL) ? specifiedFrom : stripFromLine(fromLine));
+
+  (void) alarm ((unsigned) MEDWAIT);
+  if (getOkFromSmtp (fd, buffer) == NO)
+    {
+      die ("smtp server didn't accept MAIL From, replied \"%s\".",
+	   buffer);
+    }
+  if (Verbose)
+    {
+      (void) fprintf (stderr, "Server accepted MAIL FROM: %s line.\n", stripFromLine(fromLine));
+    }
+  if (LogLevel > 0)
+    {
+      log_event (LOG_INFO, "Server accepted MAIL FROM: %s line.\n", stripFromLine(fromLine));
+    }
+
+  /* Send all the To: adresses. */
+  /* Either we're using the -t option, or we're using the arguments */
+  if (Toption)
+    {
+      if (!*recipients)
+	die ("No recipient specified although -t option specified");
+      i = 0;
+      do
+	{
+	  putToSmtp (fd, "RCPT TO:<%s>", properRecipient (recipients[i]));
+	  (void) alarm ((unsigned) MEDWAIT);
+	  if (getOkFromSmtp (fd, buffer) == NO)
+	    {
+	      die ("smtp server didn't accept RCPT To: command, replied \"%s\".",
+		   buffer);
+	    }
+	}
+      while (recipients[++i]);
+    }
+  else
+    {
+      for (i = 1; argv[i] != NULL; i++)
+	{
+	  p = strtok (argv[i], ",");
+	  while (p)
+	    {
+	      /* RFC822 Address  -> "foo@@bar" */
+              parseaddr(p, buffer, sizeof(buffer));
+	      putToSmtp (fd, "RCPT TO:<%s>", properRecipient (buffer));
+	      (void) alarm ((unsigned) MEDWAIT);
+	      if (getOkFromSmtp (fd, buffer) == NO)
+		{
+		  die ("smtp server didn't accept RCPT To: command, replied \"%s\".",
+		       buffer);
+		}
+	      p = strtok (NULL, ",");
+	    }
+	}
+    }
+  if (Verbose)
+    {
+      (void) fprintf (stderr, "Server accepted To: line(s).\n");
+    }
+  if (LogLevel > 0)
+    {
+      log_event (LOG_INFO, "Server accepted To: line(s).\n");
+    }
+
+  /* Send DATA. */
+  putToSmtp (fd, "DATA");
+  (void) alarm ((unsigned) MEDWAIT);
+  if (getFromSmtp (fd, buffer) != 3)
+    {
+      /* Oops, we were expecting "354 send your data". */
+      die ("smtp server didn't accept DATA, replied \"%s\".",
+	   buffer);
+    }
+  if (Verbose)
+    {
+      (void) fprintf (stderr, "Message body transmission started.\n");
+    }
+
+  /* Send headers, with optional From: rewriting. */
+  addInitialHeaders (fd);
+  addRequiredHeaders (fd);
+  for (p = headers; p < headere; p += strlen (p) + 1)
+    {
+      putToSmtp (fd, "%s", p);
+      (void) alarm ((unsigned) MEDWAIT);
+    }
+  /* End of headers, start body. */
+  putToSmtp (fd, "");		/* Seperate headers and body. */
+  while (fgets (buffer, sizeof buffer, stdin) != NULL)
+    {
+      /* Trim off \n, double leading .'s */
+      standardise (buffer);
+      putToSmtp (fd, "%s", buffer);
+      (void) alarm ((unsigned) MEDWAIT);
+    }
+  /* End of body. */
+  putToSmtp (fd, ".");
+
+  (void) alarm ((unsigned) MAXWAIT);
+  if (getOkFromSmtp (fd, buffer) == NO)
+    {
+      die ("smtp server wouldn't accept message, replied \"%s\".",
+	   buffer);
+    }
+  if (Verbose)
+    {
+      (void) fprintf (stderr, "Message body transmission complete.\n");
+    }
+  /* Close conection. */
+  (void) signal (SIGALRM, SIG_IGN);
+  putToSmtp (fd, "QUIT");
+  (void) getOkFromSmtp (fd, buffer);
+  (void) close (fd);
+  (void) log_event (LOG_INFO, "%s sent mail for %s",
+		    ProgName, Sender->pw_name);
+  return 0;
+}
+
+
+/*
+ * Supporting libraries -- i/o.
+ */
+
+/*
+ * openSocket -- open a socket on a specified machine.
+ *      Adapted from code by Blair P. Houghton:
+ *      Copyright 1991 Blair P. Houghton, All Rights Reserved, 
+ *      copying and distribution permitted with copyright intact.
+ */
+int 
+openSocket (char *hostName, int portNumber)
+{
+  int fd;			/* socket to "plug" into the socket */
+  struct sockaddr_in socketname;	/* mode, addr, and port data for */
+  /* the socket */
+  struct hostent *remote_host;	/* internet numbers, names */
+
+  if ((fd = socket (AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+      log_event (LOG_ERR, "unable to create a socket.\n");
+      return ERR;
+    }
+
+  /* plug it into the listening socket */
+  socketname.sin_family = AF_INET;
+  if ((remote_host = gethostbyname (hostName)) == (struct hostent *) NULL)
+    {
+      log_event (LOG_ERR, "unable to locate host %s.\n", hostName);
+      return ERR;
+    }
+  (void) bcopy ((char *) remote_host->h_addr, (char *) &socketname.sin_addr,
+		remote_host->h_length);
+  socketname.sin_port = htons (portNumber);
+
+  if (connect (fd, (struct sockaddr *) &socketname, sizeof socketname) < 0)
+    {
+      log_event (LOG_ERR, "unable to connect to \"%s\" port %d.\n",
+		 hostName, portNumber);
+      return ERR;
+    }
+  return fd;
+d1337 4
+a1340 5
+ * getOkFromSmtp -- get a line and test the three-number string
+ *      at the beginning.  If it starts with a 2, it's OK.
+ */
+int 
+getOkFromSmtp (int fd, char *response)
+d1342 1
+a1342 2
+
+  return (getFromSmtp (fd, response) == 2) ? YES : NO;
+d1347 3
+a1349 3
+ * getFromSmtp -- get a line and return the initial digit.  Deal with
+ *      continuation lines by reading to the last (non-continuation) line.
+ */
+d1353 1
+a1353 1
+  char *getLine ();
+d1355 10
+a1364 6
+  do
+    {
+      if (getLine (response, MAXLINE, fd) == NULL)
+	{
+	  *response = '\0';
+	  return NO;
+d1366 1
+a1366 7
+    }
+  while (response[3] == '-');
+  if (LogLevel > 0)
+    {
+      log_event (LOG_INFO, "Received \"%s\" from smtp port.\n", response);
+    }
+  return atoi (response) / 100;
+d1370 10
+d1383 2
+a1384 2
+ * getLine -- get a line of text from a fd instead of an fp.
+ */
+d1388 2
+a1389 2
+  int i;
+  char ch;
+d1391 13
+a1403 17
+  for (i = 0; read (fd, &ch, 1) == 1;)
+    {
+      if (i == size - 1)
+	{
+	  /* Truncate like fgets. */
+	  line[i] = '\0';
+	  return line;
+	}
+      else if (ch == '\r')
+	;			/* Strip it. */
+      else if (ch == '\n')
+	{
+	  break;
+	}
+      else
+	{
+	  line[i++] = ch;
+d1405 1
+a1405 1
+	  line[i] = '\0';
+d1407 1
+d1409 2
+a1410 3
+    }
+  line[i] = '\0';
+  return line;
+a1412 1
+
+d1414 3
+a1416 4
+ * main -- make the program behave like sendmail, then call ssmtp.
+ */
+int 
+main (int argc, char *argv[])
+d1418 1
+a1418 1
+  char **newArgv;
+d1420 5
+a1424 19
+  /* Try to be bulletproof (:-)) */
+  (void) signal (SIGHUP, SIG_IGN);
+  (void) signal (SIGINT, SIG_IGN);
+  (void) signal (SIGTTIN, SIG_IGN);
+  (void) signal (SIGTTOU, SIG_IGN);
+
+  /* Set the globals. */
+  ProgName = argv[0];
+  if (gethostname (HostName, sizeof (HostName)) == ERR)
+    {
+      die ("can't find the name of this host, %s, exiting.",
+	   "(an impossible condition)");
+    }
+  if ((Sender = getpwuid (getuid ())) == NULL)
+    {
+      die ("couldn't find password entry for sender (uid %d).",
+	   getuid ());
+    }
+  (void) get_arpadate (DateString);
+d1426 2
+a1427 7
+  newArgv = doOptions (argc, argv);
+#if 0  
+  printf("authUsername=%s  authPassword=%s\n",authUsername,authPassword);
+#endif  
+  exit (ssmtp (newArgv));
+  /*@@NOTREACHED@@*/
+}
+d1429 4
+d1434 3
+a1436 94
+/*
+ * base64.c -- base-64 conversion routines.
+ *
+ * For license terms, see the file COPYING in this directory.
+ *
+ * This base 64 encoding is defined in RFC2045 section 6.8,
+ * "Base64 Content-Transfer-Encoding", but lines must not be broken in the
+ * scheme used here.
+ */
+
+/*
+ * This code borrowed from fetchmail sources by
+ * Eric S. Raymond <esr@@snark.thyrsus.com>.
+ */
+
+
+static const char base64digits[] =
+   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+#define BAD	-1
+static const char base64val[] = {
+    BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD,
+    BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD,
+    BAD,BAD,BAD,BAD, BAD,BAD,BAD,BAD, BAD,BAD,BAD, 62, BAD,BAD,BAD, 63,
+     52, 53, 54, 55,  56, 57, 58, 59,  60, 61,BAD,BAD, BAD,BAD,BAD,BAD,
+    BAD,  0,  1,  2,   3,  4,  5,  6,   7,  8,  9, 10,  11, 12, 13, 14,
+     15, 16, 17, 18,  19, 20, 21, 22,  23, 24, 25,BAD, BAD,BAD,BAD,BAD,
+    BAD, 26, 27, 28,  29, 30, 31, 32,  33, 34, 35, 36,  37, 38, 39, 40,
+     41, 42, 43, 44,  45, 46, 47, 48,  49, 50, 51,BAD, BAD,BAD,BAD,BAD
+};
+#define DECODE64(c)  (isascii(c) ? base64val[c] : BAD)
+
+void to64frombits(unsigned char *out, const unsigned char *in, int inlen)
+/* raw bytes in quasi-big-endian order to base 64 string (NUL-terminated) */
+{
+    for (; inlen >= 3; inlen -= 3)
+    {
+	*out++ = base64digits[in[0] >> 2];
+	*out++ = base64digits[((in[0] << 4) & 0x30) | (in[1] >> 4)];
+	*out++ = base64digits[((in[1] << 2) & 0x3c) | (in[2] >> 6)];
+	*out++ = base64digits[in[2] & 0x3f];
+	in += 3;
+    }
+    if (inlen > 0)
+    {
+	unsigned char fragment;
+    
+	*out++ = base64digits[in[0] >> 2];
+	fragment = (in[0] << 4) & 0x30;
+	if (inlen > 1)
+	    fragment |= in[1] >> 4;
+	*out++ = base64digits[fragment];
+	*out++ = (inlen < 2) ? '=' : base64digits[(in[1] << 2) & 0x3c];
+	*out++ = '=';
+    }
+    *out = '\0';
+}
+
+int from64tobits(char *out, const char *in)
+/* base 64 to raw bytes in quasi-big-endian order, returning count of bytes */
+{
+    int len = 0;
+    register unsigned char digit1, digit2, digit3, digit4;
+
+    if (in[0] == '+' && in[1] == ' ')
+	in += 2;
+    if (*in == '\r')
+	return(0);
+
+    do {
+	digit1 = in[0];
+	if (DECODE64(digit1) == BAD)
+	    return(-1);
+	digit2 = in[1];
+	if (DECODE64(digit2) == BAD)
+	    return(-1);
+	digit3 = in[2];
+	if (digit3 != '=' && DECODE64(digit3) == BAD)
+	    return(-1); 
+	digit4 = in[3];
+	if (digit4 != '=' && DECODE64(digit4) == BAD)
+	    return(-1);
+	in += 4;
+	*out++ = (DECODE64(digit1) << 2) | (DECODE64(digit2) >> 4);
+	++len;
+	if (digit3 != '=')
+	{
+	    *out++ = ((DECODE64(digit2) << 4) & 0xf0) | (DECODE64(digit3) >> 2);
+	    ++len;
+	    if (digit4 != '=')
+	    {
+		*out++ = ((DECODE64(digit3) << 6) & 0xc0) | DECODE64(digit4);
+		++len;
+	    }
+d1438 1
+a1438 2
+    } while 
+	(*in && *in != '\r' && digit4 != '=');
+d1440 6
+a1445 1
+    return (len);
+a1446 2
+
+/* base64.c ends here */
+@
+
+
+1.7
+log
+@Changed definition of system UID's from <10 to <1000
+@
+text
+@d50 1
+d733 1
+a733 1
+  char line[MAXLINE], *p, *q;
+d747 1
+a747 1
+	  && ((q = strtok (NULL, "= \t\n")) != NULL))
+d761 3
+d768 3
+d855 1
+a855 1
+  char line[MAXLINE], *p;
+d884 1
+a884 1
+	      p = strtok (NULL, " \t\r\n");
+d888 3
+d895 2
+d1195 1
+a1195 1
+  if ((fd = openSocket (MailHub, PORTNUMBER)) == ERR)
+d1198 1
+a1198 1
+	   PORTNUMBER, MailHub);
+@
+
+
+1.6
+log
+@Patch for bug #72348
+@
+text
+@d559 1
+a559 1
+      || p->pw_uid > 10)
+@
+
+
+1.5
+log
+@Patch for bug #71245
+@
+text
+@d502 1
+a502 1
+ * fixFromLine -- replace whole From: header with standardized pattern.
+d698 1
+a698 1
+ * standardize -- trim off '\n's, double leading dots.
+d701 1
+a701 1
+standardize (char *p)
+d703 1
+d706 1
+a706 1
+  if ((*p == '.') && (*(p + 1) == '\n'))
+d708 1
+a708 3
+      /* Double it, in hopes smtp will single it. */
+      *(p + 1) = '.';
+      return;
+d711 5
+a715 1
+  if ((q = strchr(p, '\n')))
+d717 5
+a721 1
+      *q = '\0';
+d966 1
+a966 1
+		case 'i':		/* Initialize aliases. */
+d1155 1
+a1155 1
+      standardize (buffer);
+d1335 1
+a1335 1
+      standardize (buffer);
+@
+
+
+1.4
+log
+@Checkpoint
+@
+text
+@a294 1
+			free(t);
+d299 1
+@
+
+
+1.3
+log
+@Added patch for stripFromLine() bug
+@
+text
+@a182 73
+void 
+rrec (char *re)
+{
+  char *p, *r, *ptr;
+
+#ifdef DEBUG
+  fprintf(stderr,"RRR=%s\n",re);
+#endif
+  if (!*re)
+    {
+      free (re);
+      return;
+    }
+  if ((p = index (re, '<')))
+    {
+      ptr = p + 1;
+      if ((p = index (ptr, '>')))
+	{
+	  r = malloc (p - ptr + 1);
+	  r[p - ptr] = 0;
+	  memcpy (r, ptr, p - ptr);
+		if((rec - recipients) > 99) {
+      die("too many recipients");
+	  }
+	  *rec++ = r;
+	  free (re);
+	}
+      else
+	die ("Syntax error in recipient %s", p);
+    }
+  else {
+		if((rec - recipients) > 99) {
+      die("too many recipients");
+	  }
+    *rec++ = re;
+  }
+#ifdef DEBUG
+  fprintf(stderr,"RRRE=%s\n",rec[-1]);
+#endif
+}
+
+void 
+recordReciepient (char *line)
+{
+  char *p, *q, *r;
+
+#ifdef DEBUG
+  fprintf(stderr,"RR=%s\n",line);
+#endif
+  q = p = line;
+  do
+    {
+      while (*q == ' ' || *q == ',')
+	q++;
+      if (!*q)
+	return;
+      p = q;
+      while (*p && *p != ',')
+	p++;
+      if (*p)
+	{
+	  r = malloc (p - q + 1);
+	  memcpy (r, q, p - q);
+	  r[p - q] = 0;
+	  rrec (r);
+	  q = ++p;
+	}
+    }
+  while (*p);
+  r = (char *) malloc (strlen (q) + 1);
+  strcpy (r, q);
+  rrec (r);
+}
+a188 53
+/*
+ * recordRequiredHeaders -- note which ones we've seen.
+ */
+void 
+recordRequiredHeaders (char *line)
+{
+
+  if (*line == ' ' || *line == '\t')
+    {
+      if (previous_recipient_header)
+	{
+	  recordReciepient (line + 1);
+	  /* Keep previous_recipient_header set to non-zero. */
+	}
+
+      return;
+    }
+
+  previous_recipient_header = 0;
+
+  if (strncasecmp (line, "From:", 5) == 0)
+    {
+      hasFrom = YES;
+    }
+#ifdef HASTO_OPTION
+  else if (strncasecmp(line,"To:",3)==0)
+    {
+      hasTo = YES;
+    }
+#endif
+  else if (strncasecmp (line, "Date:", 5) == 0)
+    {
+      hasDate = YES;
+    }
+  if (Toption)
+    {	/* Need to figure out recipients from the e-mail */
+      if (strncasecmp (line, "To:", 3) == 0)
+	{
+	  recordReciepient (line + 4);
+	  previous_recipient_header = 1;
+	}
+      else if (strncasecmp (line, "Bcc:", 4) == 0)
+	{
+	  recordReciepient (line + 5);
+	  previous_recipient_header = 1;
+	}
+      else if (strncasecmp (line, "CC:", 3) == 0)
+	{
+	  recordReciepient (line + 4);
+	  previous_recipient_header = 1;
+	}
+    }
+}
+d190 1
+d334 93
+a430 1
+
+@
+
+
+1.2
+log
+@Added patch by Joel Rosdahl
+@
+text
+@d469 2
+d560 19
+d595 1
+a595 1
+      return s;
+d599 1
+a599 1
+      return Root;
+d744 5
+a748 3
+  for (q = p; *q; q++)
+    ;
+  *--q = '\0';
+@
+
+
+1.1
+log
+@Main body of code for sSMTP
+@
+text
+@d43 1
+a43 1
+#define MAILHUB "mailhost"	/* A surprisingly usefull default. */
+d69 3
+d180 2
+a181 2
+char *reciepients[100];
+char **rec = reciepients;
+d204 1
+a204 1
+		if((rec - reciepients) > 99) {
+d214 1
+a214 1
+		if((rec - reciepients) > 99) {
+d271 6
+d279 4
+a282 1
+  else if (strncasecmp (line, "From:", 5) == 0)
+d297 1
+a297 1
+    {	/* Need to figure out reciepients from the e-mail */
+d299 4
+a302 1
+	recordReciepient (line + 4);
+d304 4
+a307 1
+	recordReciepient (line + 5);
+d309 4
+a312 1
+	recordReciepient (line + 4);
+d717 1
+a717 1
+  if (*p == '.' && *(p + 1) == '\n')
+d1174 1
+a1174 1
+      /*      argv=reciepients;       */
+d1267 1
+a1267 1
+      if (!*reciepients)
+d1272 1
+a1272 1
+	  putToSmtp (fd, "RCPT TO:<%s>", properRecipient (reciepients[i]));
+d1280 1
+a1280 1
+      while (reciepients[++i]);
+@
