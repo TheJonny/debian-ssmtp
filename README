@@ -19,14 +19,17 @@ Type of systems supported:
  agent. In use on SunOS 4.1.1, NextStep 2.x/3 and Ultrix 4.2, tested briefly on
  AIX 3.2 and RISCos. Tested by others on DG U/X 5 and SVR4.
 
+ You may need to #define USE_OLD_ARPADATE for the Cygwin port of ssmtp
+ (otherwise the day of the month would always be the letter "d").
+
 Dependencies:
  External: Berkeley sockets and supporting libraries.
 
 Known limitations:
  This is not a complete sendmail. It is only a program to post mail to a
  mailhub for people who don't *want* a complete sendmail. Therefore a lot of
- flags are not supported. The header is limited to 4K and the number of
- recipients to 100.
+ flags are not supported. The old header limit of 4K is fixed and the number
+ of recipients is as large as can be held in memory.
 
 Known problems:
  Pine uses a lot of sophisticated options to talk to sendmail, and uses
@@ -37,15 +40,17 @@ Authors:
  David Collier-Brown, davecb@hobbes.ss.org, davecb@sni.ca or dave@lethe.uucp
  Christoph Lameter, clameter@debian.org, clameter@waterf.org, clameter@i-m-f.org
  Hugo Haas, hugo@debian.org, hugo@larve.net, hugo@via.ecp.fr
+ Matt Ryan, mryan@debian.org, matt.ryan@banana.org.uk
 
 TLS support from Tobias Rundstrom <tobi@tobi.nu>
 IPv6 support from Jun-ya Kato <kato@goto.info.waseda.ac.jp>
+MD5 authentication support from TAKIZAWA Takashi <aki@luna.email.ne.jp>
 
 Current Maintainer:
- Matt Ryan, mryan@debian.org, matt.ryan@banana.org.uk
+ Anibal Monsalve Salazar, A.Monsalve.Salazar@IEEE.org
 
 Patchlevel:
- Version 2.38.8
+ See ssmtp.c
 
 Copying conditions:
  GNU GPL

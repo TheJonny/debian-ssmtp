@@ -15,7 +15,27 @@ or to install it as the main Mail Transport Agent
 
 	make install-sendmail
 
---Hugo
+-- Hugo
+
+
+Fedora Core 1 system install:
+-----------------------------
+
+I would actually just suggest the INSTALL from automake.  But:
+
+If you are building sSMPT from scratch the following steps worked on a
+Fedora Core 1 system.  To install it in the /usr/local directory:
+
+        ./configure
+        make
+        make install
+
+Then edit the ssmpt.conf file /usr/local/etc and create a symbolic
+link from where your system thinks the sendmail binary goes to the
+/usr/local/sbin/ssmpt executable.
+
+-- Sven Heinicke <sven@nec-labs.com>
+
 
 Information about the options:
 ------------------------------
@@ -53,4 +73,4 @@ rewrite to, if applicable.
 options to the make command, then renames the binaries to things like
 ssmtp.S4C-SunOS4.1.1...  I also can make DEC-style setld kits.
 
---dave
+-- dave

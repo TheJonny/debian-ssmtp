@@ -53,11 +53,17 @@ Forces ssmtp to use IPv6 addresses only.
 
 .TP
 \fB\-au\fP\fIusername\fP
-Specifies username for login authorization. (only tested with MS Exchange)
+Specifies username for SMTP authentication.
 
+.TP
 \fB\-ap\fP\fIpassword\fP
-Specifies password for login authorization. (only tested with MS Exchange)
+Specifies password for SMTP authentication.
 
+.TP
+\fB\-am\fP\fImechanism\fP
+Specifies mechanism for SMTP authentication. (Only LOGIN and CRAM-MD5)
+
+.TP
 .B \-ba
 (unsupported) ARPANET mode. All input lines must end with a LINEFEED, and
 all messages will be generated with a CR-LF at the end. Also, the ``From:''

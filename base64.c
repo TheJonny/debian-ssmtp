@@ -12,6 +12,7 @@
  * This code borrowed from fetchmail sources by
  * Eric S. Raymond <esr@snark.thyrsus.com>.
  */
+#include <ctype.h>
 
 
 static const char base64digits[] =

@@ -1,0 +1,170 @@
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2004-07-23 16:09+1000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ISO-8859-15\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:4
+msgid "Automatically overwrite config files?"
+msgstr "Konfigurationsdateien automatisch überschreiben?"
+
+#. Type: boolean
+#. Description
+#: ../templates:4
+msgid ""
+"The mail configuration file /etc/ssmtp/ssmtp.conf can be automatically "
+"updated on each upgrade with the information supplied to the debconf "
+"database. If you do not want this to happen (ie/ you want to maintain "
+"control of this file yourself) then set this option to have the program "
+"never touch this file."
+msgstr ""
+"Die Konfigurationsdatei /etc/ssmtp/ssmtp.conf kann bei jedem Upgrade "
+"automatisch aktualisiert werden. Wenn Sie dies nicht möchten (z.B. weil Sie "
+"diese Datei selbst anpassen wollen), dann sollten Sie diese Option nicht "
+"wählen."
+
+#. Type: string
+#. Description
+#: ../templates:14
+msgid "Who gets mail for userids < 1000?"
+msgstr "Wer erhält Mails für User-IDs < 1000?"
+
+#. Type: string
+#. Description
+#: ../templates:14
+#, fuzzy
+msgid ""
+"Mail sent to a local user whose UID is less than 1000 will instead be sent "
+"here. This is useful for daemons which mail reports to root and other system "
+"UIDs. Make this empty to disable rewriting."
+msgstr ""
+"Mails für lokale Benutzer mit einer UID kleiner 1000 können an einen anderen "
+"Benutzer umgeleitet werden. Dies ist nützlich bei Daemons, die Reports an "
+"den Benutzer root senden."
+
+#. Type: string
+#. Description
+#: ../templates:23
+msgid "Name of your mailhub?"
+msgstr "Name des Mailhub?"
+
+#. Type: string
+#. Description
+#: ../templates:23
+msgid ""
+"This sets the host to which mail is delivered. The actual machine name is "
+"required; no MX records are consulted. Commonly, mailhosts are named \"mail."
+"domain.com\"."
+msgstr ""
+"Dies ist die Maschine, zu der Mails geliefert werden. Es wird der komplette "
+"Name benötigt. MX-Einträge werden nicht beachtet. Normalerweise ist dies ein "
+"Rechner mit dem Namen \"mail.domain.com\"."
+
+#. Type: string
+#. Description
+#: ../templates:31
+msgid "Remote SMTP port number"
+msgstr "Ferner SMTP-Port"
+
+#. Type: string
+#. Description
+#: ../templates:31
+msgid ""
+"If your remote SMTP server listens on a port other than 25 (Standard/RFC) "
+"then set it here."
+msgstr ""
+"Wenn der ferne SMTP-Server auf einem anderen als dem Standard-SMTP-Port 25 "
+"(Standard/RFC) läuft, dann geben Sie den Port hier an."
+
+#. Type: string
+#. Description
+#: ../templates:37
+msgid "What domain to masquerade as?"
+msgstr "Als welche Domain maskieren?"
+
+#. Type: string
+#. Description
+#: ../templates:37
+msgid ""
+"ssmtp will use \"username@REWRITEDOMAIN\" as the default From: address for "
+"outgoing mail which contains only a local username."
+msgstr ""
+"Ssmtp benutzt das Schema \"Benutzername@REWRITEDOMAIN\" in der Absenderzeile "
+"für ausgehende Mails, die nur einen lokalen Benutzernamen als Absender "
+"enthalten."
+
+#. Type: string
+#. Description
+#: ../templates:43
+msgid "What name to store in /etc/mailname"
+msgstr "Welchen Namen in /etc/mailname speichern?"
+
+#. Type: string
+#. Description
+#: ../templates:43
+msgid ""
+"This is the portion of the address after the '@' sign to be shown on "
+"outgoing news and mail messages."
+msgstr ""
+"Dies ist der Teil der Adresse nach dem @, der für alle ausgehenden eMails "
+"und News verwendet wird."
+
+#. Type: string
+#. Description
+#: ../templates:49
+msgid "Fully qualified hostname?"
+msgstr "vollständiger Hostname?"
+
+#. Type: string
+#. Description
+#: ../templates:49
+msgid ""
+"This should specify the real hostname of this machine, and will be sent to "
+"the mailhub when delivering mail."
+msgstr ""
+"Dies sollte der richtige Hostname ihrer Maschine sein. Er wird beim Mail "
+"senden an den Mailhub übermittelt."
+
+#. Type: boolean
+#. Description
+#: ../templates:56
+msgid "Allow override of From: line in email header?"
+msgstr "Überschreiben der From:-Zeile erlauben?"
+
+#. Type: boolean
+#. Description
+#: ../templates:56
+msgid ""
+"A \"positive\" response will permit local users to enter any From: line in "
+"their messages without it being mangled, and cause ssmtp to rewrite the "
+"envelope header with that address. A \"negative\" response will disallow "
+"this, and use only the default address or addresses set in /etc/ssmtp/"
+"revaliases."
+msgstr ""
+"Eine positive Antwort wird es lokalen Benutzern verbieten, eine From:-Zeile "
+"in ausgehenden Nachrichten zu verwenden, ohne das durch ssmtp ein Envelope- "
+"Header mit dieser Adresse geschrieben wird. Eine negative Anwort verhindert "
+"dies und lässt nur die normale Adresse oder eine in /etc/ssmtp/revaliases "
+"spezifizierte zu."

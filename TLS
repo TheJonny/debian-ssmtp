@@ -17,11 +17,14 @@ I had to add the following config directives:
 UseTLS=YES/NO
 Set this to yes and ssmtp will try to connect with SSL to the remote machine.
 
+UseSTARTTLS=YES/NO
+Do a EHLO/STARTTLS before starting the SSL negotiation (see http://www.ietf.org/rfc/rfc2487.txt).
+
 UseTLSCert=YES/NO
-Set this to yes to make ssmtp to identify it selfe with a certificate
+Set this to yes to make ssmtp identify itself with a certificate.
 
 TLSCert=<file>
-Specify which certificate file that should be used.
+Specify which certificate file should be used.
 
 
 TODO:

@@ -1,92 +1,61 @@
 Template: ssmtp/overwriteconfig
 Type: boolean
 Default: true
-Description: Automatically overwrite config files?
-  The mail configuration file /etc/ssmtp/ssmtp.conf can be automatically
-  updated on each upgrade with the information supplied to the debconf
-  database. If you do not want this to happen (ie/ you want to maintain
-  control of this file yourself) then set this option to have the program
-  never touch this file.
-Description-de: Konfigurationsdateien automatisch überschreiben?
- Die Konfigurationsdatei /etc/ssmtp/ssmtp.conf kann bei jedem Upgrade
- automatisch aktualisiert werden. Wenn Sie dies nicht möchten (z.B. weil
- Sie diese Datei selbst anpassen wollen), dann sollten Sie diese Option
- nicht wählen.
+_Description: Automatically overwrite config files?
+ The mail configuration file /etc/ssmtp/ssmtp.conf can be automatically
+ updated on each upgrade with the information supplied to the debconf
+ database. If you do not want this to happen (ie/ you want to maintain
+ control of this file yourself) then set this option to have the program
+ never touch this file.
 
 Template: ssmtp/root
 Type: string
 Default: postmaster
-Description: Who gets mail for userids < 1000?
-  Mail sent to a local user whose UID is less than 1000 will instead be
-  sent here. This is useful for daemons which mail reports to root and
-  other system UIDs.
-Description-de: Wer erhält Mails für User-IDs < 1000?
- Mails für lokale Benutzer mit einer UID kleiner 1000 können an einen
- anderen Benutzer umgeleitet werden. Dies ist nützlich bei Daemons, die
- Reports an den Benutzer root senden. 
+_Description: Who gets mail for userids < 1000?
+ Mail sent to a local user whose UID is less than 1000 will instead be
+ sent here. This is useful for daemons which mail reports to root and
+ other system UIDs.
+ Make this empty to disable rewriting.
 
 Template: ssmtp/mailhub
 Type: string
 Default: mail
-Description: Name of your mailhub?
-  This sets the host to which mail is delivered. The actual machine
-  name is required; no MX records are consulted. Commonly, mailhosts
-  are named "mail.domain.com".
-Description-de: Name des Mailhub?
- Dies ist die Maschine, zu der Mails geliefert werden. Es wird
- der komplette Name benötigt. MX-Einträge werden nicht beachtet.
- Normalerweise ist dies ein Rechner mit dem Namen "mail.domain.com".
+_Description: Name of your mailhub?
+ This sets the host to which mail is delivered. The actual machine
+ name is required; no MX records are consulted. Commonly, mailhosts
+ are named "mail.domain.com".
 
 Template: ssmtp/port
 Type: string
 Default: 25
-Description: Remote SMTP port number
-  If your remote SMTP server listens on a port other than 25 (Standard/RFC)
-  then set it here.
-Description-de: Ferner SMTP-Port
- Wenn der ferne SMTP-Server auf einem anderen als dem Standard-SMTP-Port
- 25 (Standard/RFC) läuft, dann geben Sie den Port hier an. 
+_Description: Remote SMTP port number
+ If your remote SMTP server listens on a port other than 25 (Standard/RFC)
+ then set it here.
 
 Template: ssmtp/rewritedomain
 Type: string
-Description: What domain to masquerade as?
-  ssmtp will use "username@REWRITEDOMAIN" as the default From: address
-  for outgoing mail which contains only a local username.
-Description-de: Als welche Domain maskieren?
- Ssmtp benutzt das Schema "Benutzername@REWRITEDOMAIN" in der
- Absenderzeile für ausgehende Mails, die nur einen lokalen
- Benutzernamen als Absender enthalten.
+_Description: What domain to masquerade as?
+ ssmtp will use "username@REWRITEDOMAIN" as the default From: address
+ for outgoing mail which contains only a local username.
 
 Template: ssmtp/mailname
 Type: string
-Description: What name to store in /etc/mailname
-  This is the portion of the address after the '@' sign to be shown on
-  outgoing news and mail messages.
-Description-de: Welchen Namen in /etc/mailname speichern?
- Dies ist der Teil der Adresse nach dem @, der für alle ausgehenden
- eMails und News verwendet wird.
+_Description: What name to store in /etc/mailname
+ This is the portion of the address after the '@' sign to be shown on
+ outgoing news and mail messages.
 
 Template: ssmtp/hostname
 Type: string
-Description: Fully qualified hostname?
-  This should specify the real hostname of this machine, and will be
-  sent to the mailhub when delivering mail.
-Description-de: vollständiger Hostname?
- Dies sollte der richtige Hostname ihrer Maschine sein. Er wird beim
- Mail senden an den Mailhub übermittelt.
+_Description: Fully qualified hostname?
+ This should specify the real hostname of this machine, and will be
+ sent to the mailhub when delivering mail.
 
 Template: ssmtp/fromoverride
 Type: boolean
 Default: false
-Description: Allow override of From: line in email header?
-  A "positive" response will permit local users to enter any From: line
-  in their messages without it being mangled, and cause ssmtp to rewrite
-  the envelope header with that address. A "negative" response will
-  disallow this, and use only the default address or addresses set in
-  /etc/ssmtp/revaliases.
-Description-de: Überschreiben der From:-Zeile erlauben?
- Eine positive Antwort wird es lokalen Benutzern verbieten, eine From:-Zeile
- in ausgehenden Nachrichten zu verwenden, ohne das durch ssmtp ein Envelope-
- Header mit dieser Adresse geschrieben wird. Eine negative Anwort verhindert
- dies und lässt nur die normale Adresse oder eine in /etc/ssmtp/revaliases
- spezifizierte zu.
+_Description: Allow override of From: line in email header?
+ A "positive" response will permit local users to enter any From: line
+ in their messages without it being mangled, and cause ssmtp to rewrite
+ the envelope header with that address. A "negative" response will
+ disallow this, and use only the default address or addresses set in
+ /etc/ssmtp/revaliases.

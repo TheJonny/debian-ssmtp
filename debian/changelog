@@ -1,27 +1,189 @@
-ssmtp (2.50.6.3) stable; urgency=medium
+ssmtp (2.61-2) unstable; urgency=low
 
-  * Reapplied patch to version 2.50.6.1.
-    Fixes security RC bug "ssmtp mangles messages in transit" found
-    by Michelle Konzack <linux4michelle@freenet.de>, closes: #298054.
-    Patch by Jeff King <peff-junk@peff.net>.
+  * New maintainer's email address.
 
- -- Anibal Monsalve Salazar <anibal@debian.org>  Fri, 20 May 2005 20:08:25 +1000
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Thu, 10 Feb 2005 21:39:05 +1100
 
-ssmtp (2.50.6.2) stable; urgency=medium
+ssmtp (2.61-1) unstable; urgency=low
 
-  * Fixes security RC bug "ssmtp mangles messages in transit" found
-    by Michelle Konzack <linux4michelle@freenet.de>, closes: #298054.
-    Patch by Jeff King <peff-junk@peff.net>.
+  * Unnecessary links against libnsl (Closes: #263497).
+    Patch by Zack Weinberg <zack@codesourcery.com>
+  * Misplaced quote (Closes: #271507).
+    Patch by Thomas Kaehn <tk@westend.com>
+  * debian/rules clean target should not depend on do_cfg (Closes: #263499).
+    Patch by Zack Weinberg <zack@codesourcery.com>
+  * Debug config file option (Closes: #266492).
+    Patch by Matthew Palmer <mpalmer@debian.org>
+  * Update of the french translation of the debconf templates (Closes: #267576).
+    Patch by Michel Grentzinger <mic.grentz@online.fr>
+  * Additional information (UID, name, outgoing bytes) in logfile (Closes: #271511).
+    Patch by Thomas Kaehn <tk@westend.com>
 
- -- Anibal Monsalve Salazar <anibal@debian.org>  Fri, 13 May 2005 09:23:00 +0100
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Fri, 17 Sep 2004 22:22:04 +1000
 
-ssmtp (2.50.6.1) stable-security; urgency=high
+ssmtp (2.60.12) unstable; urgency=low
 
-  * Non-maintainer upload by the Security Team
-  * Fix two format string vulnerabilities (die() and log_event())
+  * Segfaults when trying to send mail with authenticated smtp (Closes: #261975)
+    Changed debian/rules to remove --enable-md5auth (it will not be enabled during the build).
+  * Changing FromLineOverride with dpkg-reconfigure doesn't work (Closes: #262146)
+    Changed debian/postinst.
+  * Japanese po-debconf template translation (Closes: #262747)
+    Patch by Hideki Yamane <henrich@samba.gr.jp>
+
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Mon, 02 Aug 2004 09:58:19 +1000
+
+ssmtp (2.60.11) unstable; urgency=low
+
+  * md5auth/md5c.o: could not read symbols: File in wrong format (Closes: #261445)
+    Changed Makefile.in to remove md5auth/*.o.
+
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Mon, 26 Jul 2004 15:42:15 +1000
+
+ssmtp (2.60.10) unstable; urgency=low
+
+  * Make address rewriting possible to disable (Closes: #146238)
+    Patch contributed by Eric Lammerts <eric@lammerts.org>
+    Patch applied was contributed by Arthur de Jong <arthur@west.nl>
+  * Include TLS in /usr/share/doc/ssmtp (Closes: #249895)
+    Changed debian/rules.
+  * Add AuthUser, AuthPass, AuthMethod to configuration file (Closes: #249905)
+    Patch by Jim Paris <jim@jtan.com>
+  * Logic to choose cram-md5 authentication is backwards (Closes: #249907)
+    Patch by Jim Paris <jim@jtan.com>
+    Changed configure.in to replace "md5suth" with "md5auth".
+    Changed debian/rules to add --enable-md5auth to be enabled during the build.
+
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Fri, 23 Jul 2004 16:11:45 +1000
+
+ssmtp (2.60.9) unstable; urgency=low
+
+  * Can not execute generate_config (Closes: #246225)
+    Changed generate_config permissions.
+  * Following INSTALL docs does build sSMTP on a Fedora Core 1 system (Closes: #246226)
+    Changed INSTALL file. Patch by Sven Heinicke <sven@nec-labs.com>
+  * ssmtp-2.60.4 does not compile if --enable-md5suth is set (Closes: #213194)
+    Patch by Brandy Westcott <brandy@gentoo.org>
+  * SSMTP builds with MD5 support but during the exchange it segfaults (Closes: #249203)
+    Patch by Paul Davis <pdd@lucent.com>
+  * Build system ignores CC environment (Closes: #198764)
+    Patch by Moritz Barsnick <moritz+deb@barsnick.net>
+  * Possible better config-file-generator (Closes: #245870)
+    Included in the source root directory as generate_config_alt so people could try it.
+    Patch by Jari Aalto and submitted by Robert R Schneck-McConnell <schneck@Math.Berkeley.EDU>
+
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Sun, 16 May 2004 12:50:54 +1000
+
+ssmtp (2.60.8) unstable; urgency=low
+
+  * Added CFLAGS to debian/rules
+  * Documentation error - 4K limitation or not? (Closes: #220542)
+    Updated debian/README.debian
+  * SSL support not compiled in (Closes: #244660)
+    Changed debian/rules. Patch by jacob@internet24.de
+  * The source compilaton fails if ./configure --enable-logfile is selected (Closes: #242905)
+    Changed ssmtp.c. Patch by Jari Aalto.
+  * SSL/TLS support cannot handle STARTTLS (Closes: #244666)
+    Changed ssmtp.c and TLS. Patch by jacob@internet24.de
+  * generate_config has syntax errors (Closes: #245083)
+    Changed generate_config. Patch by Sven Heinicke <sven@nec-labs.com>
+
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Sat, 24 Apr 2004 14:29:58 +1000
+
+ssmtp (2.60.7) unstable; urgency=high
+
+  * Fixed two format string vulnerabilities (die() and log_event()) (Closes: #243945)
     discovered by Max Vozeler <max@hinterhof.net> (CAN-2004-0156)
+  * Creates bad date headers on some systems (Closes: #230864)
+    Changed README file to warn Cygwin porters that they may need to #define USE_OLD_ARPADATE
 
- -- Matt Zimmerman <mdz@debian.org>  Mon, 12 Apr 2004 09:21:54 -0700
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Fri, 16 Apr 2004 08:01:40 +1000
+
+ssmtp (2.60.6) unstable; urgency=low
+
+  * Added "Build-Depends: po-debconf" (Closes: #243260)
+
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Mon, 12 Apr 2004 15:05:23 +1000
+
+ssmtp (2.60.5) unstable; urgency=low
+
+  * New Maintainer (Closes: #241775)
+  * Shouldn't overwrite configuration by default (Closes: #233556)
+  * Switched to gettext for the debconf templates (Closes: #201795)
+    Patch by Michel Grentzinger <mic.grentz@online.fr>
+  * Added french translation of the debconf templates (Closes: #202274)
+    Patch by Michel Grentzinger <mic.grentz@online.fr>
+    
+ -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Sat, 10 Apr 2004 09:41:51 +1000
+
+ssmtp (2.60.4) unstable; urgency=low
+
+  * Fix 'MAIL FROM' problems with cron and the like setting bad 'From:'
+    address when FromLineOverride=YES is set (Closes: #205513)
+  * Update version string in ssmtp.c (Closes: #198763)
+  * Work around missing spaces in headers (Closes: #192445)
+  * Duplicate of 169931 (Closes: #183189)
+
+ -- Matt Ryan <mryan@debian.org>  Sun, 17 Aug 2003 15:14:01 +0100
+
+ssmtp (2.60.3) unstable; urgency=low
+
+  * Check for overflow in gethostbyname() - thanks to Stephan Erickson
+  * Fixes for SSL compilation from Tomas Nejedlik
+  * TZ problem fix from Paul Eggert (Closes: #169931)
+  * Unused variable bug fixed in previous version (Closes: #171146)
+  * Fixed in earlier version (Closes: #168397)
+
+ -- Matt Ryan <mryan@debian.org>  Sun,  8 Dec 2002 17:37:17 +0000
+
+ssmtp (2.60.2) unstable; urgency=low
+
+  * Header code fixes have not generated more bug reports (Closes: #161821)
+  * Another crack at fixing cron related mail errors (Closes: #163747)
+  * Use correct variable in from_format function (Closes: #166276)
+  * Fix build problem on non-i386 platforms (Closes: #165007)
+  * Never got around to closing this after answer given (Closes: #154908)
+
+ -- Matt Ryan <mryan@debian.org>  Fri, 27 Sep 2002 14:22:21 +0100
+
+ssmtp (2.60.1) unstable; urgency=low
+
+  * New version
+
+ -- Matt Ryan <mryan@debian.org>  Fri, 27 Sep 2002 14:22:21 +0100
+
+ssmtp (2.50.10) unstable; urgency=low
+
+  * Added patch from Thatcher Ulrich to correctly terminate multi-line
+    headers with \r\n
+  * The code for undisclosed-recipients has been integrated for a number
+    of release with no bugs reported (Closes: #136787)
+  * No new reports of problems with the new From: rewrite code added over
+    the last few point releases (Closes: #132424)
+  * This appears to have been a debconf issue, but was never formally closed
+    until now (Closes: #111951)
+
+ -- Matt Ryan <mryan@debian.org>  Sat, 27 Jul 2002 13:52:36 +0100
+
+ssmtp (2.50.9) unstable; urgency=low
+
+  * Added patch from Cr33p to compile with SSL
+  * Added fix from Mark Ferlatte for TZ offset (Closes: #148608)
+
+ -- Matt Ryan <mryan@debian.org>  Mon,  3 Jun 2002 13:00:27 +0100
+
+ssmtp (2.50.8) unstable; urgency=low
+
+  * Better description of FromLineOverride in config file and some fixes
+    to the code to better handle the From: override cases (Closes: #143903)
+  * Added fix for MAIL FROM when supplied From: line is NULL (Closes: #145640)
+
+ -- Matt Ryan <mryan@debian.org>  Tue,  7 May 2002 14:23:20 +0100
+
+ssmtp (2.50.7) unstable; urgency=low
+
+  * Workaround incorrect RewriteDomain settings
+
+ -- Matt Ryan <mryan@debian.org>  Mon,  6 May 2002 21:06:55 +0100
 
 ssmtp (2.50.6) unstable; urgency=low
 

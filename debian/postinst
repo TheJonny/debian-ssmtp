@@ -1,45 +1,36 @@
 #!/bin/sh -e
 #
-# $Id: postinst,v 1.12 2001/12/15 11:47:05 matt Exp $
+# $Id: postinst,v 1.14 2002/10/25 09:36:19 matt Exp $
 #
 
 if test -L /usr/doc/ssmtp
 then
 	rm -f /usr/doc/ssmtp 2>/dev/null || true
-#else
-#	if cd /usr/doc 2>/dev/null
-#	then
-#		ln -sf ../share/doc/ssmtp ssmtp
-#	fi
-#
 fi
 
 . /usr/share/debconf/confmodule
 
-db_get ssmtp/overwriteconfig
-OverwriteConfig="${RET:-true}"
-
 db_get ssmtp/root
-PostMaster="${RET:-postmaster}"
+root="$RET"
 
 db_get ssmtp/mailhub
-MailHub="${RET:-mail}"
+mailhub="${RET:-mail}"
 
 db_get ssmtp/port
-RemotePort="$RET"
+port="$RET"
 
 db_get ssmtp/hostname
-FQDN="${RET:-`hostname --fqdn`}"
+hostname="${RET:-`hostname --fqdn`}"
 
 db_get ssmtp/rewritedomain
-RewriteDomain="$RET"
+rewritedomain="$RET"
 
 if test -s /etc/mailname
 then
 	:
 else
-	test -n "$FQDN" && MailName="$FQDN"
-	test -n "$RewriteDomain" && MailName="$RewriteDomain"
+	test -n "$hostname" && MailName="$hostname"
+	test -n "$rewritedomain" && MailName="$rewritedomain"
 
 	touch /etc/mailname
 	chmod 644 /etc/mailname
@@ -47,48 +38,57 @@ else
 fi
 
 db_get ssmtp/fromoverride
-test "$RET" = "true" && FromOverride="$RET"
+test "$RET" = "true" && FromOverride=YES
 
 test -d /etc/ssmtp || exit 1
 
 if test -s /etc/ssmtp/ssmtp.conf
 then
-	if test "$OverwriteConfig" = "false"
+	if test "$port" = "25" -o -z "$port"
 	then
-		exit 0
+		:
+	else
+		mailhub=${mailhub}:$port
 	fi
-fi
-exec 1>/etc/ssmtp/ssmtp.conf
-
-echo "***     This file is auto-generated using debconf on install.     ***"
-echo "*** Any changes made may be overwritten on next upgrade depending ***"
-echo "***  on your answer to the question on overwriting config files.  ***"
-echo "#"
-echo "# Config file for sSMTP sendmail"
-echo "#"
-echo "# The person who gets all mail for userids < 1000"
-echo "root=$PostMaster"
-echo
-echo "# The place where the mail goes. The actual machine name is required no "
-echo "# MX records are consulted. Commonly mailhosts are named mail.domain.com"
-if test "$RemotePort" = "25" -o -z "$RemotePort"
-then
-	echo "mailhub=$MailHub"
+	test -z "$FromOverride" && FromOverride=NO
+	touch /etc/ssmtp/ssmtp.conf.tmp
+	chmod 644 /etc/ssmtp/ssmtp.conf.tmp
+	sed "s/^root=.*/root=$root/;s/^mailhub=.*/mailhub=$mailhub/;s/^rewriteDomain=.*/rewriteDomain=$rewritedomain/;s/^hostname=.*/hostname=$hostname/;s/^FromLineOverride=.*/FromLineOverride=$FromOverride/;s/^#FromLineOverride=.*/FromLineOverride=$FromOverride/" /etc/ssmtp/ssmtp.conf > /etc/ssmtp/ssmtp.conf.tmp
+	mv -f /etc/ssmtp/ssmtp.conf.tmp /etc/ssmtp/ssmtp.conf
 else
-	echo "mailhub=${MailHub}:$RemotePort"
+	touch /etc/ssmtp/ssmtp.conf
+	chmod 644 /etc/ssmtp/ssmtp.conf
+	exec 1>/etc/ssmtp/ssmtp.conf
+
+	echo "#"
+	echo "# Config file for sSMTP sendmail"
+	echo "#"
+	echo "# The person who gets all mail for userids < 1000"
+	echo "# Make this empty to disable rewriting."
+	echo "root=$root"
+	echo
+	echo "# The place where the mail goes. The actual machine name is required no "
+	echo "# MX records are consulted. Commonly mailhosts are named mail.domain.com"
+	if test "$port" = "25" -o -z "$port"
+	then
+		echo "mailhub=$mailhub"
+	else
+		echo "mailhub=${mailhub}:$port"
+	fi
+	echo
+	echo "# Where will the mail seem to come from?"
+	test -z "$rewritedomain" && echo -n "#"
+	echo "rewriteDomain=$rewritedomain"
+	echo ""
+	echo "# The full hostname"
+	echo "hostname=$hostname"
+	echo
+	echo "# Are users allowed to set their own From: address?"
+	echo "# YES - Allow the user to specify their own From: address"
+	echo "# NO - Use the system generated From: address"
+	test -z "$FromOverride" && echo -n "#"
+	echo "FromLineOverride=YES"
 fi
-echo
-echo "# Where will the mail seem to come from?"
-test -z "$RewriteDomain" && echo -n "#"
-echo "rewriteDomain=$RewriteDomain"
-echo ""
-echo "# The full hostname"
-echo "hostname=$FQDN"
-echo
-echo "# Set this to never rewrite the "From:" line (unless not given) and to"
-echo "# use that address in the "from line" of the envelope."
-test -z "$FromOverride" && echo -n "#"
-echo "FromLineOverride=YES"
 
 # Program End
 exit 0

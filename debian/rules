@@ -1,12 +1,14 @@
 #!/usr/bin/make -f
 #
 # Rules for making sSMTP - Matt Ryan
+# Copyright (C) 2004-2005 Anibal Monsalve Salazar <anibal@debian.org>
 #
 SHELL=/bin/bash
 CC = gcc
+CFLAGS = -O2 -g -Wall
 
 do_cfg:
-	test -f Makefile || ./configure --prefix="/usr"
+	test -f Makefile || ./configure --exec-prefix="/usr" --prefix="" --enable-ssl --with-cflags="$(CFLAGS)"
 
 build:	do_cfg
 	make
@@ -19,13 +21,13 @@ binary-arch:	checkroot configure build
 	dpkg-shlibdeps ssmtp
 
 	install -d -m 755 -o root -g root debian/tmp/DEBIAN
-	dpkg-gencontrol
-	install -m 400 debian/conffiles debian/tmp/DEBIAN
-	install -m 555 debian/preinst debian/tmp/DEBIAN
-	install -m 555 debian/postinst debian/tmp/DEBIAN
-	install -m 555 debian/postrm debian/tmp/DEBIAN
-	install -m 555 debian/config debian/tmp/DEBIAN
-	install -m 555 debian/templates debian/tmp/DEBIAN
+	dpkg-gencontrol -isp
+	po2debconf --podir=debian/po debian/templates > debian/tmp/DEBIAN/templates
+	install -m 644 debian/conffiles debian/tmp/DEBIAN
+	install -m 755 debian/preinst debian/tmp/DEBIAN
+	install -m 755 debian/postinst debian/tmp/DEBIAN
+	install -m 755 debian/postrm debian/tmp/DEBIAN
+	install -m 755 debian/config debian/tmp/DEBIAN
 
 	install -d -m 755 debian/tmp/usr/sbin
 	install -s -m 755 ssmtp debian/tmp/usr/sbin/ssmtp
@@ -47,24 +49,24 @@ binary-arch:	checkroot configure build
 	-cd debian/tmp/usr/share/man/man8 && ln -sf ssmtp.8.gz sendmail.8.gz
 
 	install -d -m 755 -o root -g root debian/tmp/usr/share/doc/ssmtp
+	install -m 644 TLS debian/tmp/usr/share/doc/ssmtp
 	install -m 644 README debian/tmp/usr/share/doc/ssmtp
 	install -m 644 debian/README.debian debian/tmp/usr/share/doc/ssmtp/README.Debian
 	install -m 644 debian/copyright debian/tmp/usr/share/doc/ssmtp
-	install -m 644 debian/changelog debian/tmp/usr/share/doc/ssmtp/changelog
-	install -m 644 OLD/CHANGELOG debian/tmp/usr/share/doc/ssmtp/CHANGELOG_OLD
-	gzip -9 debian/tmp/usr/share/doc/ssmtp/{changelog,CHANGELOG_OLD}
+	install -m 644 debian/changelog debian/tmp/usr/share/doc/ssmtp/changelog.Debian
+	install -m 644 CHANGELOG_OLD debian/tmp/usr/share/doc/ssmtp/changelog
+	gzip -9 debian/tmp/usr/share/doc/ssmtp/{changelog.Debian,changelog}
 
 	dpkg --build debian/tmp ..
 
 binary-indep:
 
-clean:	do_cfg
+clean:
+	test \! -f Makefile || make distclean
 	-rm -rf debian/tmp
 	-rm -f debian/{files,substvars}
-	test -f Makefile && make distclean
 
 checkroot:
 	test root = "`whoami`"
-
 
 .PHONY: build binary clean checkroot

@@ -8,8 +8,9 @@ bindir=$(prefix)/sbin
 mandir=$(prefix)/man/man8
 
 LN_S=@LN_S@
+CC=@CC@
 
-etcdir=/etc
+etcdir=@sysconfdir@
 SSMTPCONFDIR=$(etcdir)/ssmtp
 # (End of relocation section)
 
@@ -23,8 +24,7 @@ INSTALLED_REVALIASES_FILE=$(REVALIASES_FILE)
 # Programs
 GEN_CONFIG=$(srcdir)/generate_config
 
-SRCS=main.c header.c rcpt.c from.c net.c log.c options.c util.c \
-	arpadate.c base64.c
+SRCS=ssmtp.c arpadate.c base64.c @SRCS@
 
 OBJS=$(SRCS:.c=.o)
 
@@ -36,7 +36,7 @@ EXTRADEFS=\
 -DREVALIASES_FILE=\"$(REVALIASES_FILE)\" \
 
 
-CFLAGS=-Wall @DEFS@ $(EXTRADEFS) @CFLAGS@ -g
+CFLAGS=-Wall @DEFS@ $(EXTRADEFS) @CFLAGS@
 
 .PHONY: all
 all: ssmtp
@@ -79,13 +79,11 @@ uninstall-sendmail: uninstall
 
 # Binaries:
 ssmtp: $(OBJS)
-	$(CC) -o ssmtp $(OBJS) @LIBS@ 
-
-vpath %.c $(srcdir)
+	$(CC) -o ssmtp $(OBJS) @LIBS@
 
 .PHONY: clean
 clean:
-	$(RM) ssmtp *.o core
+	$(RM) ssmtp *.o md5auth/*.o core
 
 .PHONY: distclean
 distclean: clean docclean
