@@ -70,6 +70,17 @@
  *  October 1998 Hugo Haas
  *   - Corrected option parsing mechanism
  *   - Added support for the '-f', '-F' and '-r' options
+ *
+ *  January 1999 Hugo Haas
+ *   - Corrected (again) options parsing mechanism: -R option is now ignored
+ *     correctly
+ *
+ *  March 1999 Hugo Haas
+ *   - Added patch by Joel Rosdahl <joel@debian.org> adding FromLineOverride
+ *
+ *  June 1999 Hugo Haas
+ *   - Added parseaddr correctly parsing RFC822 addresses, written by Miquel
+ *     van Smoorenburg <miquels@cistron.nl> (Debian Bug #38795).
  */
 
 #include <stdio.h>
@@ -110,6 +121,10 @@ char HostName[MAXLINE];		/* Our name, unless overridden. */
 char *RewriteDomain = "localhost";	/* Place to claim to be. */
 int UseRD = NO;			/* Do we have to rewrite the domain? */
 #endif
+int FromLineOverride = NO;      /* Should we use same address in the
+                                   from-line of the envelope as in the
+                                   From:-line? */
+char *theFromLine = NULL;       /* Save the From:-line. */
 char *specifiedFrom = NULL;	/* Content of the From: field if specified
 				 with the -f option */
 char *specifiedName = NULL;	/* Same for -F option */
@@ -331,6 +346,149 @@ recordRequiredHeaders (char *line)
     }
 }
 
+/*
+ * parseaddr.c	Read a valid RFC822 address with all the comments
+ *		etc in it, and return _just_ the email address.
+ *
+ * Version:	@(#)parseaddr.c  1.00  02-Apr-1999  miquels@cistron.nl
+ *
+ */
+
+#include <ctype.h>
+
+struct token {
+	struct token *next;
+	char word[1];
+};
+
+#define SKIPSPACE(p) do { while(*p && isspace(*p)) p++; } while(0)
+
+/*
+ *	Skip everything between quotes.
+ */
+static void quotes(char **ptr)
+{
+	char		*p = *ptr;
+
+	p++;
+	while (*p && *p != '"') {
+		if (*p == '\\' && p[1])
+			p++;
+		p++;
+	}
+	*ptr = p;
+}
+
+/*
+ *	Return the next token. A token can be "<>()," or any "word".
+ */
+static struct token *gettoken(char **ptr)
+{
+	struct token	*tok;
+	char		*p = *ptr;
+	char		*begin;
+	int		l, quit = 0;
+
+	SKIPSPACE(p);
+	begin = p;
+
+	while (!quit) {
+		switch (*p) {
+			case 0:
+			case ' ':
+			case '\t':
+			case '\n':
+				quit = 1;
+				break;
+			case '(':
+			case ')':
+			case '<':
+			case '>':
+			case ',':
+				if (p == begin) p++;
+				quit = 1;
+				break;
+			case '\\':
+				if (p[1]) p++;
+				break;
+			case '"':
+				quotes(&p);
+				break;
+		}
+		if (!quit) p++;
+	}
+
+	l = p - begin;
+	if (l == 0) return NULL;
+	if ((tok = malloc(sizeof(struct token) + l)) == NULL)
+		return NULL;
+	tok->next = NULL;
+	strncpy(tok->word, begin, l);
+	tok->word[l] = 0;
+
+	SKIPSPACE(p);
+	*ptr = p;
+
+	return tok;
+}
+
+/*
+ *	Get email address from rfc822 address.
+ */
+int parseaddr(char *addr, char *buf, int bufsz)
+{
+	char		*p;
+	struct token	*t, *tok, *last;
+	struct token	*brace = NULL;
+	int		comment = 0;
+
+	tok = last = NULL;
+
+	/*
+	 *	Read address, remove comments right away.
+	 */
+	p = addr;
+	while ((t = gettoken(&p)) != NULL && t->word[0] != ',') {
+		if (t->word[0] == '(' || t->word[0] == ')' || comment) {
+			free(t);
+			if (t->word[0] == '(')
+				comment++;
+			if (t->word[0] == ')')
+				comment--;
+			continue;
+		}
+		if (t->word[0] == '<')
+			brace = t;
+		if (tok)
+			last->next = t;
+		else
+			tok = t;
+		last = t;
+	}
+
+	/*
+	 *	Put extracted address into "buf"
+	 */
+	buf[0] = 0;
+	t = brace ? brace->next : tok;
+	for (; t && t->word[0] != ',' && t->word[0] != '>'; t = t->next) {
+		if (strlen(t->word) >= bufsz)
+			return -1;
+		bufsz -= strlen(t->word);
+		strcat(buf, t->word);
+	}
+
+	/*
+	 *	Free list of tokens.
+	 */
+	for (t = tok; t; t = last) {
+		last = t->next;
+		free(t);
+	}
+
+	return 0;
+}
+
 /* 
  * stripFromLine -- transforms "Name <login@host>" into "login@host"
  */
@@ -407,7 +565,10 @@ fixFromLines (char *line)
 
   if (strncasecmp (line, "From:", 5) == 0)
     {
-      (void) sprintf (line, "From: %s", fromLine ());
+      if (FromLineOverride)
+        theFromLine = strdup(line);
+      else
+        (void) sprintf (line, "From: %s", fromLine ());
     }
   if (*line == (char) NULL)
     {
@@ -675,6 +836,19 @@ parseConfig (FILE * fp)
 		}
 	    }
 #endif
+          else if (strcasecmp (p, "FromLineOverride") == 0)
+            {
+              if (strcasecmp(q, "yes") == 0)
+                FromLineOverride = YES;
+              else
+                FromLineOverride = NO;
+              if (LogLevel > 0)
+                {
+                  log_event (LOG_INFO,
+                             "Set FromLineOverride=\"%s\".\n",
+                             FromLineOverride ? "YES" : "NO");
+                }
+            }
 	  else
 	    {
 	      log_event (LOG_INFO,
@@ -786,8 +960,14 @@ doOptions (int argc, char *argv[])
 	      continue;
 	    case 'E':		/* insecure channel, don't trust userid. */
 	      continue;
-	    case 'R':		/* amount of the message to be returned */
-	      /* Process queue for recipient. */
+	    case 'R':
+	      if (!argv[i][j+1]) {	/* amount of the message to be returned */
+		add++;
+		goto exit;
+	      }
+	      else {		/* Process queue for recipient. */
+		continue;
+	      }
 	    case 'F':		/* fullname of sender. */
 	      if (!argv[i][j+1]) {
 		specifiedName = strdup(argv[i+1]);
@@ -920,7 +1100,7 @@ char *headere;			/* End of header */
 int 
 ssmtp (char *argv[])
 {
-  char buffer[MAXLINE],*c ,*p;
+  char buffer[MAXLINE], *p;
   int fd, i;
 
   if (getConfig () == NO)
@@ -992,7 +1172,13 @@ ssmtp (char *argv[])
     }
 
   /* Send "MAIL FROM:" line */
-  putToSmtp (fd, "MAIL FROM:<%s>", stripFromLine(fromLine()));
+  if (theFromLine && FromLineOverride)
+    {
+      putToSmtp (fd, "MAIL FROM:<%s>", stripFromLine(theFromLine));
+      free(theFromLine);
+    }
+  else
+    putToSmtp (fd, "MAIL FROM:<%s>", stripFromLine(fromLine()));
 
   (void) alarm ((unsigned) MEDWAIT);
   if (getOkFromSmtp (fd, buffer) == NO)
@@ -1035,19 +1221,9 @@ ssmtp (char *argv[])
 	  p = strtok (argv[i], ",");
 	  while (p)
 	    {
-	      /* Address "My friend <foo@bar>" -> "foo@bar" */
-	      strcpy (buffer, p);
-	      c = strchr (buffer, '<');
-	      if (c)
-		{
-		  c++;
-		  p = strchr (c, '>');
-		  if (p)
-		    *p = '\0';
-		}
-	      else
-		c = buffer;
-	      putToSmtp (fd, "RCPT TO:<%s>", properRecipient (c));
+	      /* RFC822 Address  -> "foo@bar" */
+              parseaddr(p, buffer, sizeof(buffer));
+	      putToSmtp (fd, "RCPT TO:<%s>", properRecipient (buffer));
 	      (void) alarm ((unsigned) MEDWAIT);
 	      if (getOkFromSmtp (fd, buffer) == NO)
 		{

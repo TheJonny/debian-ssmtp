@@ -32,14 +32,21 @@ then
 #
 # The person who gets all mail for userids < 10
 root=postmaster
+
 # The place where the mail goes. The actual machine name is required
 # no MX records are consulted. Commonly mailhosts are named mail.domain.com
 # The example will fit if you are in domain.com and you mailhub is so named.
 mailhub=mail
+
 # Where will the mail seem to come from?
 #rewriteDomain=`cat /etc/mailname`
+
 # The full hostname
 hostname=`hostname --fqdn`
+
+# Set this to never rewrite the "From:" line (unless not given) and to
+# use that address in the "from line" of the envelope.
+#FromLineOverride=YES
 EOF
 	echo "Please check the configuration file in /etc/ssmtp/ssmtp.conf for correctness."
 fi
