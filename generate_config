@@ -13,20 +13,23 @@ if [ ! -f /etc/mailname ]; then
   echo -n "Mail name [$syshostname]: "
   read mailname
   echo
-  if [ "$mailname" ]; then
-    echo $mailname >/etc/mailname
-  else
-    echo $syshostname >/etc/mailname
+  if [ ! "$mailname" ]; then
+    mailname=$syshostname
   fi
+else
+  mailname=`cat /etc/mailname`
 fi
 
+
 #
-# Generate configuration file if necessary
+# Generate configuration file
 #
 
-if [ ! -s /etc/ssmtp/ssmtp.conf ];
-then
-	cat >>/etc/ssmtp/ssmtp.conf <<EOF
+if [ -s $1 ]; then
+    echo Configuration file $1 already exists.
+    exit
+fi
+cat >>$1 <<EOF
 #
 # /etc/ssmtp.conf -- a config file for sSMTP sendmail.
 #
@@ -37,9 +40,13 @@ root=postmaster
 # The example will fit if you are in domain.com and you mailhub is so named.
 mailhub=mail
 # Where will the mail seem to come from?
-#rewriteDomain=`cat /etc/mailname`
+#rewriteDomain=`echo -n $mailname`
 # The full hostname
 hostname=`hostname --fqdn`
 EOF
-	echo "Please check the configuration file in /etc/ssmtp/ssmtp.conf for correctness."
-fi
+
+echo
+echo
+echo "Please check the configuration file $1 for correctness."
+echo
+echo

@@ -1,3 +1,25 @@
+To install ssmtp:
+-----------------
+
+Check the options and directories in Makfile.
+
+Then type:
+
+	make
+
+and finally install the files:
+
+	make install
+
+or to install it as the main Mail Transport Agent
+
+	make install-sendmail
+
+--Hugo
+
+Information about the options:
+------------------------------
+
   To install this program, you compile it with the correct options
 and copy the binary.
 

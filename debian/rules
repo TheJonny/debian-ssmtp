@@ -29,7 +29,7 @@ binary-arch: build
 	dh_clean
 	dh_installdirs
 
-	$(MAKE) ROOT=`pwd`/debian/tmp install-sendmail
+	$(MAKE) ROOT=`pwd`/debian/tmp LOCATION=/usr install-sendmail
 	rm debian/tmp/etc/ssmtp/ssmtp.conf
 	touch debian/tmp/etc/ssmtp/ssmtp.conf
 

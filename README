@@ -37,13 +37,13 @@ smtpserver in pine.conf.
 Authors:
   David Collier-Brown, davecb@hobbes.ss.org, davecb@sni.ca or dave@lethe.uucp
   Christoph Lameter, clameter@debian.org, clameter@waterf.org, clameter@i-m-f.org
-  Hugo Haas, hugo@debian.org, hugo@via.ecp.fr, hh223@cam.ac.uk
+  Hugo Haas, hugo@debian.org, hugo@via.ecp.fr
 
 Current Maintainer:
-  Hugo Haas, hugo@debian.org, hugo@via.ecp.fr, hh223@cam.ac.uk
+  Hugo Haas, hugo@debian.org, hugo@via.ecp.fr
 
 Patchlevel:
-  Version 2.26
+  Version 2.30
 
 Copying conditions:
   GNU GPL
