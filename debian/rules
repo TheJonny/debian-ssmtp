@@ -33,6 +33,8 @@ binary-arch:	checkroot configure build
 	install -s -m 755 ssmtp debian/tmp/usr/sbin/ssmtp
 	install -d -m 755 debian/tmp/usr/share/man/man8
 	install -m 644 ssmtp.8 debian/tmp/usr/share/man/man8/ssmtp.8
+	install -d -m 755 debian/tmp/usr/share/man/man5
+	install -m 644 ssmtp.conf.5 debian/tmp/usr/share/man/man5/ssmtp.conf.5
 	install -d -m 755 debian/tmp/etc/ssmtp
 	install -m 644 revaliases debian/tmp/etc/ssmtp/revaliases
 
@@ -45,6 +47,7 @@ binary-arch:	checkroot configure build
 	-cd debian/tmp/usr/sbin && ln -sf ssmtp mailq
 	install -m 644 debian/mailq.8 debian/tmp/usr/share/man/man8
 
+	gzip -9v debian/tmp/usr/share/man/man5/*
 	gzip -9v debian/tmp/usr/share/man/man8/*
 	-cd debian/tmp/usr/share/man/man8 && ln -sf ssmtp.8.gz sendmail.8.gz
 

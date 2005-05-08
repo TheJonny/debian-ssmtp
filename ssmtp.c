@@ -37,7 +37,7 @@
 #include "md5auth/hmac_md5.h"
 #endif
 #include "ssmtp.h"
-
+#include <fcntl.h>
 
 bool_t have_date = False;
 bool_t have_from = False;
@@ -51,6 +51,7 @@ bool_t rewrite_domain = False;
 bool_t use_tls = False;			/* Use SSL to transfer mail to HUB */
 bool_t use_starttls = False;		/* SSL only after STARTTLS (RFC2487) */
 bool_t use_cert = False;		/* Use a certificate to transfer SSL mail */
+bool_t use_oldauth = False;		/* use old AUTH LOGIN username style */
 
 #define ARPADATE_LENGTH 32		/* Current date in RFC format */
 char arpadate[ARPADATE_LENGTH];
@@ -68,6 +69,7 @@ char *prog = (char)NULL;
 char *root = NULL;
 char *tls_cert = "/etc/ssl/certs/ssmtp.pem";	/* Default Certificate */
 char *uad = (char)NULL;
+char *config_file = (char)NULL;		/* alternate configuration file */
 
 headers_t headers, *ht;
 
@@ -790,7 +792,14 @@ bool_t read_config()
 	char buf[(BUF_SZ + 1)], *p, *q, *r;
 	FILE *fp;
 
-	if((fp = fopen(CONFIGURATION_FILE, "r")) == NULL) {
+	if(config_file == (char *)NULL) {
+		config_file = strdup(CONFIGURATION_FILE);
+		if(config_file == (char *)NULL) {
+			die("parse_config() -- strdup() failed");
+		}
+	}
+
+	if((fp = fopen(config_file, "r")) == NULL) {
 		return(False);
 	}
 
@@ -963,6 +972,20 @@ bool_t read_config()
 
 				if(log_level > 0) {
 					log_event(LOG_INFO, "Set AuthMethod=\"%s\"\n", auth_method);
+				}
+			}
+			else if(strcasecmp(p, "UseOldAUTH") == 0) {
+				if(strcasecmp(q, "YES") == 0) {
+					use_oldauth = True;
+				}
+				else {
+					use_oldauth = False;
+				}
+ 
+				if(log_level > 0) {
+					log_event(LOG_INFO,
+						"Set UseOldAUTH=\"%s\"\n",
+						use_oldauth ? "True" : "False");
 				}
 			}
 			else if (strcasecmp(p, "Debug") == 0)
@@ -1306,7 +1329,7 @@ int ssmtp(char *argv[])
 	get_arpadate(arpadate);
 
 	if(read_config() == False) {
-		log_event(LOG_INFO, "%s/ssmtp.conf not found", SSMTPCONFDIR);
+		log_event(LOG_INFO, "%s not found", config_file);
 	}
 
 	if((p = strtok(pw->pw_gecos, ";,"))) {
@@ -1370,7 +1393,7 @@ int ssmtp(char *argv[])
 			auth_pass = strdup("");
 		}
 
-		if(strcasecmp(auth_method, "cram-md5") == 0) {
+		if(auth_method && strcasecmp(auth_method, "cram-md5") == 0) {
 			outbytes += smtp_write(sock, "AUTH CRAM-MD5");
 			(void)alarm((unsigned) MEDWAIT);
 
@@ -1386,7 +1409,20 @@ int ssmtp(char *argv[])
 #endif
 		memset(buf, 0, sizeof(buf));
 		to64frombits(buf, auth_user, strlen(auth_user));
-		outbytes += smtp_write(sock, "AUTH LOGIN %s", buf);
+		if (use_oldauth) {
+			outbytes += smtp_write(sock, "AUTH LOGIN %s", buf);
+		}
+		else {
+			outbytes += smtp_write(sock, "AUTH LOGIN");
+			(void)alarm((unsigned) MEDWAIT);
+			if(smtp_read(sock, buf) != 3) {
+				die("Server didn't like our AUTH LOGIN (%s)", buf);
+			}
+			/* we assume server asked us for Username */
+			memset(buf, 0, sizeof(buf));
+			to64frombits(buf, auth_user, strlen(auth_user));
+			outbytes += smtp_write(sock, buf);
+		}
 
 		(void)alarm((unsigned) MEDWAIT);
 		if(smtp_read(sock, buf) != 3) {
@@ -1491,6 +1527,10 @@ int ssmtp(char *argv[])
 
 	/* End of headers, start body */
 	outbytes += smtp_write(sock, "");
+
+	/*prevent blocking on pipes, we really shouldnt be using
+	  stdio functions like fgets in the first place */
+	fcntl(STDIN_FILENO,F_SETFL,O_NONBLOCK);
 
 	while(fgets(buf, sizeof(buf), stdin)) {
 		/* Trim off \n, double leading .'s */
@@ -1658,6 +1698,19 @@ char **parse_options(int argc, char *argv[])
 
 			/* Configfile name */
 			case 'C':
+				if((!argv[i][(j + 1)]) && argv[(i + 1)]) {
+					config_file = strdup(argv[(i + 1)]);
+					if(config_file == (char *)NULL) {
+						die("parse_options() -- strdup() failed");
+					}
+					add++;
+				}
+				else {
+					config_file = strdup(argv[i]+j+1);
+					if(config_file == (char *)NULL) {
+						die("parse_options() -- strdup() failed");
+					}
+				}
 				goto exit;
 
 			/* Debug */

@@ -4,31 +4,30 @@
 #    this format, e.g. by running:
 #         info -n '(gettext)PO Files'
 #         info -n '(gettext)Header Entry'
+#
 #    Some information specific to po-debconf are available at
 #            /usr/share/doc/po-debconf/README-trans
-#         or http://www.debian.org/intl/l10n/po-debconf/README-trans#
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
 #    Developers do not need to manually edit POT or PO files.
-# Erik Schanze <mail@erikschanze.de>, 2004.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: ssmtp_2.61-1_de\n"
+"Project-Id-Version: ssmtp\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-07-23 16:09+1000\n"
-"PO-Revision-Date: 2004-11-14 16:32+0100\n"
-"Last-Translator: Erik Schanze <mail@erikschanze.de>\n"
-"Language-Team: German <debian-l10n-german@lists.debian.org>\n"
+"PO-Revision-Date: 2004-12-31 16:22+0100\n"
+"Last-Translator: Miroslav Kure <kurem@debian.cz>\n"
+"Language-Team: Czech <provoz@debian.cz>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.3.1\n"
-"Plural-Forms:  nplurals=2; plural=(n != 1);\n"
 
 #. Type: boolean
 #. Description
 #: ../templates:4
 msgid "Automatically overwrite config files?"
-msgstr "Konfigurationsdateien automatisch Ã¼berschreiben?"
+msgstr "Automaticky pøepsat konfiguraèní soubory?"
 
 #. Type: boolean
 #. Description
@@ -40,16 +39,16 @@ msgid ""
 "control of this file yourself) then set this option to have the program "
 "never touch this file."
 msgstr ""
-"Die Konfigurationsdatei /etc/ssmtp/ssmtp.conf kann bei jeder Aktualisierung "
-"automatisch erneuert werden. Wenn Sie das nicht mÃ¶chten (z.B. weil Sie "
-"diese Datei selbst anpassen wollen), dann sollten Sie diese Option nicht "
-"wÃ¤hlen."
+"Konfiguraèní soubor /etc/ssmtp/ssmtp.conf mù¾e být automaticky aktualizován "
+"informacemi zadanými v databázi debconfu. Pokud nechcete, aby se tak dìlo "
+"(tj. chcete soubor spravovat sami), odpovìzdte zde, ¾e nechcete, aby systém "
+"aktualizoval konfiguraèní soubor."
 
 #. Type: string
 #. Description
 #: ../templates:14
 msgid "Who gets mail for userids < 1000?"
-msgstr "Wer erhÃ¤lt E-Mails fÃ¼r Benutzer-IDs < 1000?"
+msgstr "Kdo bude dostávat po¹tu pro u¾ivatele s uid < 1000?"
 
 #. Type: string
 #. Description
@@ -59,16 +58,15 @@ msgid ""
 "here. This is useful for daemons which mail reports to root and other system "
 "UIDs. Make this empty to disable rewriting."
 msgstr ""
-"E-Mails fÃ¼r lokale Benutzer mit einer UID kleiner 1000 kÃ¶nnen an einen anderen "
-"Benutzer umgeleitet werden. Dies ist nÃ¼tzlich bei Diensten, die Reports an "
-"den Benutzer root oder andere System-Benutzer senden. Wenn das Feld leer "
-"bleibt, wird nichts umgeleitet."
+"Po¹ta zaslaná u¾ivateli s UID men¹ím ne¾ 1000 skonèí právì zde. To je "
+"u¾iteèné pro daemony, které posílají emaily rootovi a jiným systémovým "
+"u¾ivatelùm. Pokud ponecháte prázdné, zaká¾ete pøepisování."
 
 #. Type: string
 #. Description
 #: ../templates:23
 msgid "Name of your mailhub?"
-msgstr "Name Ihres Mailhubs?"
+msgstr "Jméno po¹tovní centrály?"
 
 #. Type: string
 #. Description
@@ -78,15 +76,15 @@ msgid ""
 "required; no MX records are consulted. Commonly, mailhosts are named \"mail."
 "domain.com\"."
 msgstr ""
-"Dies ist die Maschine, zu der E-Mails geliefert werden. Es wird der komplette "
-"Name benÃ¶tigt. MX-EintrÃ¤ge werden nicht beachtet. Normalerweise ist dies ein "
-"Rechner mit dem Namen \"mail.domain.com\"."
+"Tímto nastavíte poèítaè, kterému se bude po¹ta doruèovat. Je vy¾adováno "
+"konkrétní jméno poèítaèe, MX záznamy nejsou konzultovány. Obvyklá po¹tovní "
+"jména poèítaèù bývají \"mail.domena.cz\"."
 
 #. Type: string
 #. Description
 #: ../templates:31
 msgid "Remote SMTP port number"
-msgstr "Ferner SMTP-Port:"
+msgstr "Èíslo vzdáleného SMTP portu"
 
 #. Type: string
 #. Description
@@ -95,14 +93,14 @@ msgid ""
 "If your remote SMTP server listens on a port other than 25 (Standard/RFC) "
 "then set it here."
 msgstr ""
-"Wenn der ferne SMTP-Server auf einem anderen als dem Standard-SMTP-Port 25 "
-"(Standard/RFC) lÃ¤uft, dann geben Sie den Port hier an."
+"Pokud vá¹ vzdálený SMTP server poslouchá na jiném portu ne¾ 25 (dle RFC), "
+"zadejte jej zde."
 
 #. Type: string
 #. Description
 #: ../templates:37
 msgid "What domain to masquerade as?"
-msgstr "Als welche Domain maskieren?"
+msgstr "Tváøit se jako která doména?"
 
 #. Type: string
 #. Description
@@ -111,15 +109,14 @@ msgid ""
 "ssmtp will use \"username@REWRITEDOMAIN\" as the default From: address for "
 "outgoing mail which contains only a local username."
 msgstr ""
-"Ssmtp benutzt das Schema \"Benutzername@REWRITEDOMAIN\" in der Absenderzeile "
-"fÃ¼r ausgehende E-Mails, die nur einen lokalen Benutzernamen als Absender "
-"enthalten."
+"Pro odchozí po¹tu, která obsahuje v hlavièce From: pouze místní jméno "
+"u¾ivatele, pøepí¹e ssmtp hlavièku do podoby \"uzivatel@PREPSANADOMENA\"."
 
 #. Type: string
 #. Description
 #: ../templates:43
 msgid "What name to store in /etc/mailname"
-msgstr "Welchen Namen in der Datei /etc/mailname speichern?"
+msgstr "Jaké jméno ulo¾it do /etc/mailname?"
 
 #. Type: string
 #. Description
@@ -128,14 +125,14 @@ msgid ""
 "This is the portion of the address after the '@' sign to be shown on "
 "outgoing news and mail messages."
 msgstr ""
-"Dies ist der Teil der Adresse nach dem '@', der fÃ¼r alle ausgehenden E-Mails "
-"und News verwendet wird."
+"Toto je èást adresy za znakem '@', která se bude objevovat na odchozí "
+"po¹tì a news pøíspìvcích."
 
 #. Type: string
 #. Description
 #: ../templates:49
 msgid "Fully qualified hostname?"
-msgstr "VollstÃ¤ndiger Hostname?"
+msgstr "Plnì kvalifikované doménové jméno?"
 
 #. Type: string
 #. Description
@@ -144,14 +141,14 @@ msgid ""
 "This should specify the real hostname of this machine, and will be sent to "
 "the mailhub when delivering mail."
 msgstr ""
-"Dies sollte der richtige Hostname Ihrer Maschine sein. Er wird beim Senden der "
-"E-Mail an den Mailhub Ã¼bermittelt."
+"Zde byste mìli zadat opravdové jméno tohoto poèítaèe. Pøi doruèování po¹ty "
+"se toto jméno za¹le va¹í po¹tovní centrále."
 
 #. Type: boolean
 #. Description
 #: ../templates:56
 msgid "Allow override of From: line in email header?"
-msgstr "Ãœberschreiben der From:-Zeile erlauben?"
+msgstr "Povolit pøepisování pole From: v hlavièkách emailù?"
 
 #. Type: boolean
 #. Description
@@ -163,9 +160,7 @@ msgid ""
 "this, and use only the default address or addresses set in /etc/ssmtp/"
 "revaliases."
 msgstr ""
-"Wenn Sie zustimmen, wird lokalen Benutzern erlaubt, jede From:-Zeile "
-"in ausgehenden Nachrichten zu verwenden, ohne das sie verÃ¤ndert wird und ssmtp "
-"wird auch die Envelope-Kopfzeile mit dieser Adresse Ã¼berschreiben. "
-"Wenn Sie ablehnen, verhindern Sie dies und lassen nur die Standard-Adresse "
-"oder eine aus der Datei /etc/ssmtp/revaliases zu."
-
+"Odpovíte-li kladnì, povolíte lokálním u¾ivatelùm zadat do jejich zpráv "
+"libovolné pole From:. Toto pole nebude nijak zmìnìno a ssmtp touto adresou "
+"pøepí¹e hlavièku obálky. Zápornou odpovìdí toto zaká¾ete a pou¾ije se "
+"pouze adresa (nebo adresy) z /etc/ssmtp/revaliases."
