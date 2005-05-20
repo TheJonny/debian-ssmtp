@@ -415,7 +415,7 @@ int ssmtp(char *argv[])
 		standardise(buf);
 */
 
-		SMTP_write(sock, ht->string);
+		SMTP_write(sock, "%s", ht->string);
 		ht = ht->next;
 	}
 

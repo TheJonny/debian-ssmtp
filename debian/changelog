@@ -1,3 +1,12 @@
+ssmtp (2.50.6.3) stable; urgency=medium
+
+  * Reapplied patch to version 2.50.6.1.
+    Fixes security RC bug "ssmtp mangles messages in transit" found
+    by Michelle Konzack <linux4michelle@freenet.de>, closes: #298054.
+    Patch by Jeff King <peff-junk@peff.net>.
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Fri, 20 May 2005 20:08:25 +1000
+
 ssmtp (2.50.6.2) stable; urgency=medium
 
   * Fixes security RC bug "ssmtp mangles messages in transit" found
