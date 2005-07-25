@@ -60,6 +60,13 @@ binary-arch:	checkroot configure build
 	install -m 644 CHANGELOG_OLD debian/tmp/usr/share/doc/ssmtp/changelog
 	gzip -9 debian/tmp/usr/share/doc/ssmtp/{changelog.Debian,changelog}
 
+	install -d -m 755 debian/tmp/etc/logcheck/ignore.d.server
+	install -m 640 debian/logcheck.server \
+		debian/tmp/etc/logcheck/ignore.d.server/ssmtp
+	
+	install -d -m 755 debian/tmp/usr/share/lintian/overrides/
+	install -m 644 debian/ssmtp.lintian debian/tmp/usr/share/lintian/overrides/ssmtp
+
 	dpkg --build debian/tmp ..
 
 binary-indep:

@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
 Uploaders: Santiago Ruano Rincon <santiago@unicauca.edu.co>
 Build-Depends: po-debconf, libssl-dev
-Standards-Version: 3.6.1
+Standards-Version: 3.6.2
 
 Package: ssmtp
 Architecture: any

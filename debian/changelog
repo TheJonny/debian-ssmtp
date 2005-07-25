@@ -1,3 +1,10 @@
+ssmtp (2.61-4) unstable; urgency=low
+
+  * Added Vietnamese translation for debconf template, Closes: #319835
+  * Added an ignore script for logcheck, Closes: #319942
+
+ -- Santiago Ruano Rincon <santiago@unicauca.edu.co>  Mon, 25 Jul 2005 14:26:18 -0500
+
 ssmtp (2.61-3) unstable; urgency=low
 
   * Fixed "help ssmtp compile and run properly on other platforms",
