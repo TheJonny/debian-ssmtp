@@ -781,6 +781,36 @@ void header_parse(FILE *stream)
 
 		l = c;
 	}
+	if(in_header) {
+		if(l == '\n') {
+			switch(c) {
+				case ' ':
+				case '\t':
+						/* Must insert '\r' before '\n's embedded in header
+						   fields otherwise qmail won't accept our mail
+						   because a bare '\n' violates some RFC */
+						
+						*(q - 1) = '\r';	/* Replace previous \n with \r */
+						*q++ = '\n';		/* Insert \n */
+						len++;
+						
+						break;
+
+				case '\n':
+						in_header = False;
+
+				default:
+						*q = (char)NULL;
+						if((q = strrchr(p, '\n'))) {
+							*q = (char)NULL;
+						}
+						header_save(p);
+
+						q = p;
+						len = 0;
+			}
+		}
+	}
 	(void)free(p);
 }
 
@@ -1319,6 +1349,7 @@ int ssmtp(char *argv[])
 	struct passwd *pw;
 	int i, sock;
 	uid_t uid;
+	int timeout = 0;
 
 	outbytes = 0;
 
@@ -1532,7 +1563,15 @@ int ssmtp(char *argv[])
 	  stdio functions like fgets in the first place */
 	fcntl(STDIN_FILENO,F_SETFL,O_NONBLOCK);
 
-	while(fgets(buf, sizeof(buf), stdin)) {
+	/* don't hang forever when reading from stdin */
+	while(!feof(stdin) && timeout < MEDWAIT) {
+		if (!fgets(buf, sizeof(buf), stdin)) {
+			/* if nothing was received, then no transmission
+			 * over smtp should be done */
+			sleep(1);
+			timeout++;
+			continue;
+		}
 		/* Trim off \n, double leading .'s */
 		standardise(buf);
 
@@ -1542,6 +1581,11 @@ int ssmtp(char *argv[])
 	}
 	/* End of body */
 
+	if (timeout >= MEDWAIT) {
+		log_event(LOG_ERR, "killed: timeout on stdin while reading body -- message saved to dead.letter.");
+		die("Timeout on stdin while reading body");
+	}
+
 	outbytes += smtp_write(sock, ".");
 	(void)alarm((unsigned) MAXWAIT);
 
@@ -1549,7 +1593,7 @@ int ssmtp(char *argv[])
 		die("%s", buf);
 	}
 
-	/* Close conection */
+	/* Close connection */
 	(void)signal(SIGALRM, SIG_IGN);
 
 	outbytes += smtp_write(sock, "QUIT");

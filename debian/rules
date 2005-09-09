@@ -4,8 +4,8 @@
 # Copyright (C) 2004-2005 Anibal Monsalve Salazar <anibal@debian.org>
 #
 SHELL=/bin/bash
-CC = gcc
-CFLAGS = -O2 -g -Wall
+CC=gcc
+CFLAGS=-O2 -g -Wall
 
 do_cfg:
 	test -f Makefile || ./configure --exec-prefix="/usr" --prefix="" --enable-ssl --with-cflags="$(CFLAGS)"

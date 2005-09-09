@@ -36,7 +36,7 @@ EXTRADEFS=\
 -DREVALIASES_FILE=\"$(REVALIASES_FILE)\" \
 
 
-CFLAGS=-Wall @DEFS@ $(EXTRADEFS) @CFLAGS@
+CFLAGS=@DEFS@ $(EXTRADEFS) @CFLAGS@
 
 .PHONY: all
 all: ssmtp
@@ -79,7 +79,7 @@ uninstall-sendmail: uninstall
 
 # Binaries:
 ssmtp: $(OBJS)
-	$(CC) -o ssmtp $(OBJS) @LIBS@
+	$(CC) -o ssmtp $(OBJS) @LIBS@ $(CFLAGS)
 
 .PHONY: clean
 clean:
