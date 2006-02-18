@@ -12,7 +12,8 @@
  See COPYRIGHT for the license
 
 */
-#define VERSION "2.60.4"
+#define VERSION "2.61"
+#define _GNU_SOURCE
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -38,6 +39,7 @@
 #endif
 #include "ssmtp.h"
 #include <fcntl.h>
+#include "xgethostname.h"
 
 bool_t have_date = False;
 bool_t have_from = False;
@@ -60,7 +62,7 @@ char *auth_pass = (char)NULL;
 char *auth_method = (char)NULL;		/* Mechanism for SMTP authentication */
 char *mail_domain = (char)NULL;
 char *from = (char)NULL;		/* Use this as the From: address */
-char hostname[MAXHOSTNAMELEN] = "localhost";
+char *hostname;
 char *mailhost = "mailhub";
 char *minus_f = (char)NULL;
 char *minus_F = (char)NULL;
@@ -142,7 +144,8 @@ dead_letter() -- Save stdin to ~/dead.letter if possible
 */
 void dead_letter(void)
 {
-	char path[(MAXPATHLEN + 1)], buf[(BUF_SZ + 1)];
+	char *path;
+	char buf[(BUF_SZ + 1)];
 	struct passwd *pw;
 	uid_t uid;
 	FILE *fp;
@@ -166,16 +169,21 @@ void dead_letter(void)
 		return;
 	}
 
-	if(snprintf(path, BUF_SZ, "%s/dead.letter", pw->pw_dir) == -1) {
+#define DEAD_LETTER "/dead.letter"
+	path = malloc (strlen (pw->pw_dir) + sizeof (DEAD_LETTER));
+	if (!path) {
 		/* Can't use die() here since dead_letter() is called from die() */
 		exit(1);
 	}
-
+	memcpy (path, pw->pw_dir, strlen (pw->pw_dir));
+	memcpy (path + strlen (pw->pw_dir), DEAD_LETTER, sizeof (DEAD_LETTER));
+	
 	if((fp = fopen(path, "a")) == (FILE *)NULL) {
 		/* Perhaps the person doesn't have a homedir... */
 		if(log_level > 0) {
 			log_event(LOG_ERR, "Can't open %s failing horribly!", path);
 		}
+		free(path);
 		return;
 	}
 
@@ -192,6 +200,7 @@ void dead_letter(void)
 				"Can't close %s/dead.letter, possibly truncated", pw->pw_dir);
 		}
 	}
+	free(path);
 }
 
 /*
@@ -215,27 +224,22 @@ void die(char *format, ...)
 	exit(1);
 }
 
+#ifndef _GNU_SOURCE
 /*
 basename() -- Return last element of path
 */
 char *basename(char *str)
 {
-	char buf[MAXPATHLEN +1], *p;
+	char *p;
 
-	if((p = strrchr(str, '/'))) {
-		if(strncpy(buf, ++p, MAXPATHLEN) == (char *)NULL) {
-			die("basename() -- strncpy() failed");
-		}
+	p = strrchr(str, '/');
+	if (!p) {
+		p = str;
 	}
-	else {
-		if(strncpy(buf, str, MAXPATHLEN) == (char *)NULL) {
-			die("basename() -- strncpy() failed");
-		}
-	}
-	buf[MAXPATHLEN] = (char)NULL;
 
-	return(strdup(buf));
+	return(strdup(p));
 }
+#endif /* _GNU_SOURCE */
 
 /*
 strip_pre_ws() -- Return pointer to first non-whitespace character
@@ -815,6 +819,35 @@ void header_parse(FILE *stream)
 }
 
 /*
+ * This is much like strtok, but does not modify the string
+ * argument.
+ * Args: 
+ * 	char **s:
+ * 		Address of the pointer to the string we are looking at.
+ * 	const char *delim:
+ * 		The set of delimiters.
+ * Return value:
+ *	The first token, copied by strndup (caller have to free it),
+ * 	if a token is found, or NULL if isn't (os strndup fails)
+ * 	*s points to the rest of the string
+ */
+char *firsttok(char **s, const char *delim)
+{
+	char *tok;
+	char *rest;
+	rest=strpbrk(*s,delim);
+	if (!rest) {
+		return NULL;
+	}
+	tok=strndup(*s,rest-(*s));
+	if (!tok) {
+		die("firsttok() -- strndup() failed");
+	}
+	*s=rest+1;
+	return tok;
+}
+
+/*
 read_config() -- Open and parse config file and extract values of variables
 */
 bool_t read_config()
@@ -834,6 +867,8 @@ bool_t read_config()
 	}
 
 	while(fgets(buf, sizeof(buf), fp)) {
+		char *begin=buf;
+		char *rightside;
 		/* Make comments invisible */
 		if((p = strchr(buf, '#'))) {
 			*p = (char)NULL;
@@ -843,8 +878,12 @@ bool_t read_config()
 		if(strchr(buf, '=') == (char *)NULL) continue;
 
 		/* Parse out keywords */
-		if(((p = strtok(buf, "= \t\n")) != (char *)NULL)
-			&& ((q = strtok(NULL, "= \t\n:")) != (char *)NULL)) {
+		p=firsttok(&begin, "= \t\n");
+		if(p){
+			rightside=begin;
+			q = firsttok(&begin, "= \t\n:");
+		}
+		if(p && q) {
 			if(strcasecmp(p, "Root") == 0) {
 				if((root = strdup(q)) == (char *)NULL) {
 					die("parse_config() -- strdup() failed");
@@ -859,8 +898,9 @@ bool_t read_config()
 					die("parse_config() -- strdup() failed");
 				}
 
-				if((r = strtok(NULL, "= \t\n:")) != NULL) {
+				if((r = firsttok(&begin, "= \t\n:")) != NULL) {
 					port = atoi(r);
+					free(r);
 				}
 
 				if(log_level > 0) {
@@ -869,12 +909,25 @@ bool_t read_config()
 				}
 			}
 			else if(strcasecmp(p, "HostName") == 0) {
-				if(strncpy(hostname, q, MAXHOSTNAMELEN) == NULL) {
-					die("parse_config() -- strncpy() failed");
+				free(hostname);
+				hostname = strdup(q);
+				if (!hostname) {
+					die("parse_config() -- strdup() failed");
 				}
 
 				if(log_level > 0) {
 					log_event(LOG_INFO, "Set HostName=\"%s\"\n", hostname);
+				}
+			}
+			else if(strcasecmp(p,"AddHeader") == 0) {
+				if((r = firsttok(&rightside, "\n#")) != NULL) {
+					header_save(r);
+					free(r);
+				} else {
+					die("cannot AddHeader");
+				}
+				if(log_level > 0 ) {
+					log_event(LOG_INFO, "Set AddHeader=\"%s\"\n", q);
 				}
 			}
 #ifdef REWRITE_DOMAIN
@@ -1032,7 +1085,9 @@ bool_t read_config()
 			else {
 				log_event(LOG_INFO, "Unable to set %s=\"%s\"\n", p, q);
 			}
-		}
+			free(p);
+			free(q);
+		} 
 	}
 	(void)fclose(fp);
 
@@ -1352,6 +1407,7 @@ int ssmtp(char *argv[])
 	int timeout = 0;
 
 	outbytes = 0;
+	ht = &headers;
 
 	uid = getuid();
 	if((pw = getpwuid(uid)) == (struct passwd *)NULL) {
@@ -1375,7 +1431,6 @@ int ssmtp(char *argv[])
 		uad = append_domain(pw->pw_name);
 	}
 
-	ht = &headers;
 	rt = &rcpt_list;
 
 	header_parse(stdin);
@@ -1982,7 +2037,10 @@ int main(int argc, char **argv)
 	/* Set the globals */
 	prog = basename(argv[0]);
 
-	if(gethostname(hostname, MAXHOSTNAMELEN) == -1) {
+	hostname = xgethostname();
+
+	if(!hostname) {
+		perror("xgethostname");
 		die("Cannot get the name of this machine");
 	}
 	new_argv = parse_options(argc, argv);

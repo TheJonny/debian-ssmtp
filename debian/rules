@@ -58,6 +58,7 @@ binary-arch:	checkroot configure build
 	install -m 644 debian/copyright debian/tmp/usr/share/doc/ssmtp
 	install -m 644 debian/changelog debian/tmp/usr/share/doc/ssmtp/changelog.Debian
 	install -m 644 CHANGELOG_OLD debian/tmp/usr/share/doc/ssmtp/changelog
+	install -m 644 debian/AddHeader debian/tmp/usr/share/doc/ssmtp/AddHeader
 	gzip -9 debian/tmp/usr/share/doc/ssmtp/{changelog.Debian,changelog}
 
 	install -d -m 755 debian/tmp/etc/logcheck/ignore.d.server

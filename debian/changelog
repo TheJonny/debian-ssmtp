@@ -1,3 +1,13 @@
+ssmtp (2.61-6) unstable; urgency=low
+
+  * AddHeader option, patch applied (Closes: #223329)
+  * Version number was not correct, updated to 2.61 (Closes: #297636)
+  * FTBFS on hurd-i386: Unconditonal use of system limit macros (Closes: #344815)
+  * Added Swedish translation of the debconf template, thanks to Daniel
+    Nylander <yeager@lidkoping.net> (Closes: #351349)
+
+ -- Santiago Ruano Rincon <santiago@unicauca.edu.co>  Sat, 18 Feb 2006 00:13:26 -0500
+
 ssmtp (2.61-5) unstable; urgency=high
 
   * Fixed "broken pipe -- ssmtp exits before end of input", closes:
