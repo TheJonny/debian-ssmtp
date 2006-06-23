@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-07-23 16:09+1000\n"
+"POT-Creation-Date: 2006-06-04 21:34-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -44,7 +44,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:14
-msgid "Who gets mail for userids < 1000?"
+msgid "Who gets mail for userids < 1000:"
 msgstr ""
 
 #. Type: string
@@ -59,7 +59,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:23
-msgid "Name of your mailhub?"
+msgid "Name of your mailhub:"
 msgstr ""
 
 #. Type: string
@@ -74,7 +74,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:31
-msgid "Remote SMTP port number"
+msgid "Remote SMTP port number:"
 msgstr ""
 
 #. Type: string
@@ -88,7 +88,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:37
-msgid "What domain to masquerade as?"
+msgid "What domain to masquerade as:"
 msgstr ""
 
 #. Type: string
@@ -102,7 +102,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:43
-msgid "What name to store in /etc/mailname"
+msgid "What name to store in /etc/mailname:"
 msgstr ""
 
 #. Type: string
@@ -116,7 +116,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:49
-msgid "Fully qualified hostname?"
+msgid "Fully qualified hostname:"
 msgstr ""
 
 #. Type: string

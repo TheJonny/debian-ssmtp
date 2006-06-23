@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ssmtp 2.60.11\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-07-23 16:09+1000\n"
+"POT-Creation-Date: 2006-06-04 21:34-0500\n"
 "PO-Revision-Date: 2004-08-01 01:39+0900\n"
 "Last-Translator: Hideki Yamane <henrich@samba.gr.jp>\n"
 "Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
@@ -48,7 +48,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:14
-msgid "Who gets mail for userids < 1000?"
+#, fuzzy
+msgid "Who gets mail for userids < 1000:"
 msgstr "ユーザ ID が 1000 未満のメールは誰が受け取りますか?"
 
 #. Type: string
@@ -66,7 +67,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:23
-msgid "Name of your mailhub?"
+#, fuzzy
+msgid "Name of your mailhub:"
 msgstr "メールハブの名前は何ですか?"
 
 #. Type: string
@@ -84,7 +86,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:31
-msgid "Remote SMTP port number"
+#, fuzzy
+msgid "Remote SMTP port number:"
 msgstr "リモート SMTP サーバのポート番号は何ですか?"
 
 #. Type: string
@@ -100,7 +103,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:37
-msgid "What domain to masquerade as?"
+#, fuzzy
+msgid "What domain to masquerade as:"
 msgstr "どのドメインとしてメールを送りますか?"
 
 #. Type: string
@@ -116,7 +120,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:43
-msgid "What name to store in /etc/mailname"
+#, fuzzy
+msgid "What name to store in /etc/mailname:"
 msgstr "/etc/mailname にどの名前を記述しますか"
 
 #. Type: string
@@ -132,7 +137,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:49
-msgid "Fully qualified hostname?"
+#, fuzzy
+msgid "Fully qualified hostname:"
 msgstr "FQDN は何ですか?"
 
 #. Type: string

@@ -1,3 +1,18 @@
+ssmtp (2.61-7) unstable; urgency=low
+
+  * ssmtp maintained via alioth: http://alioth.debian.org/projects/ssmtp/
+  * Enabled IPv6. Configured with --enable-inet6 Closes: #349457
+  * Added Russian debconf translation. Thanks to "Yuriy Talakan'".
+    Closes: #367211
+  * Fixed error in french debconf translation. Patch by Sylvain Archenault.
+    Closes: #369370
+  * New co-maintainer's email address.
+  * Standars version updated to 3.7.2
+  * Updated FSF's address
+  * Fixed some malformed-prompt-in-templates in debconf templates
+
+ -- Santiago Ruano Rincón <santiago@debian.org>  Fri, 23 Jun 2006 15:54:06 -0500
+
 ssmtp (2.61-6) unstable; urgency=low
 
   * AddHeader option, patch applied (Closes: #223329)
