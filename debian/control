@@ -3,12 +3,12 @@ Section: mail
 Priority: extra
 Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
 Uploaders: Santiago Ruano Rincón <santiago@debian.org>
-Build-Depends: po-debconf, libssl-dev
+Build-Depends: po-debconf, libgnutls-dev
 Standards-Version: 3.7.2
 
 Package: ssmtp
 Architecture: any
-Depends: ${shlibs:Depends}, debconf
+Depends: ${shlibs:Depends}, ${misc:Depends}, debconf
 Conflicts: mail-transport-agent
 Provides: mail-transport-agent
 Replaces: mail-transport-agent

@@ -11,10 +11,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 2.60.3\n"
+"Project-Id-Version: 2.61-7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2006-06-04 21:34-0500\n"
-"PO-Revision-Date: 2006-05-29 13:37+0200\n"
+"PO-Revision-Date: 2006-06-30 11:16+0200\n"
 "Last-Translator: Michel Grentzinger <mic.grentz@online.fr>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -40,18 +40,16 @@ msgstr ""
 "Le fichier de configuration du courriel (/etc/ssmtp/ssmtp.conf) peut être "
 "automatiquement adapté à chaque mise à niveau d'après les informations "
 "fournies dans la base de données de debconf. Si vous ne voulez pas que cela "
-"arrive (c.-à-d. que vous souhaitez gardez le contrôle de ce fichier), "
+"arrive (c.-à-d. que vous souhaitez garder le contrôle de ce fichier), "
 "répondez négativement à cette question afin que le programme ne modifie "
 "jamais ce fichier."
 
 #. Type: string
 #. Description
 #: ../templates:14
-#, fuzzy
 msgid "Who gets mail for userids < 1000:"
 msgstr ""
-"Destinataire des courriels pour les utilisateurs dont l'UID est inférieur à "
-"1000 :"
+"Destinataire des courriels pour les utilisateurs système (UID<1000) :"
 
 #. Type: string
 #. Description
@@ -63,15 +61,14 @@ msgid ""
 msgstr ""
 "Les courriels envoyés à un utilisateur local dont l'UID est inférieur à 1000 "
 "seront envoyés à l'adresse indiquée ici. C'est utile pour les démons qui "
-"expédient des rapports au super-utilisateur et aux autres UID système. "
+"expédient des rapports au superutilisateur et aux autres UID système. "
 "Veuillez laisser ce champ vide pour désactiver la réécriture d'adresse."
 
 #. Type: string
 #. Description
 #: ../templates:23
-#, fuzzy
 msgid "Name of your mailhub:"
-msgstr "Nom de votre concentrateur de courriel (« mail hub ») :"
+msgstr "Nom d'hôte de votre concentrateur de courriel (« mail hub ») :"
 
 #. Type: string
 #. Description
@@ -89,7 +86,6 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:31
-#, fuzzy
 msgid "Remote SMTP port number:"
 msgstr "Numéro du port SMTP distant :"
 
@@ -106,7 +102,6 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:37
-#, fuzzy
 msgid "What domain to masquerade as:"
 msgstr "Domaine de masquage (« masquerade ») :"
 
@@ -123,7 +118,6 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:43
-#, fuzzy
 msgid "What name to store in /etc/mailname:"
 msgstr "Nom d'hôte à utiliser dans /etc/mailname :"
 
@@ -140,7 +134,6 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../templates:49
-#, fuzzy
 msgid "Fully qualified hostname:"
 msgstr "Nom de domaine pleinement qualifié :"
 
