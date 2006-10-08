@@ -1,3 +1,13 @@
+ssmtp (2.61-9) unstable; urgency=low
+
+  * cram-md5 enabled. --enable-md5auth used in configure (Closes: #384145)
+  * Updated cs.po, by Miroslav Kure <kurem@upcase.inf.upol.cz>
+    (Closes: #389186)
+  * arpadate.c: date was mangled when using compilers that don't support
+    %_d conversion. (Closes: #357281)
+
+ -- Santiago Ruano Rincón <santiago@debian.org>  Sun, 08 Oct 2006 10:26:20 -0500
+
 ssmtp (2.61-8) unstable; urgency=medium
 
   [ Santiago Ruano Rincón ]
