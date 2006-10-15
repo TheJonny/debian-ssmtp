@@ -704,6 +704,10 @@ void header_save(char *str)
 		else if(strncasecmp(ht->string, "Bcc:", 4) == 0) {
 			p = (ht->string + 4);
 			rcpt_parse(p);
+                        /* Undo adding the header to the list: */
+                        free(ht->string);
+                        ht->string = NULL;
+                        return;
 		}
 		else if(strncasecmp(ht->string, "CC:", 3) == 0) {
 			p = (ht->string + 3);
