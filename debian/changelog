@@ -1,3 +1,11 @@
+ssmtp (2.61-10.1) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * Fix Information leak in ssmtp that leads to password exposure.
+    Closes: #369542
+
+ -- Andreas Barth <aba@not.so.argh.org>  Mon,  4 Dec 2006 11:03:19 +0000
+
 ssmtp (2.61-10) unstable; urgency=low
 
   * Added Spanish po-debconf translation (Closes: #393223)

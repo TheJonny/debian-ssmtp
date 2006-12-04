@@ -1406,6 +1406,7 @@ int ssmtp(char *argv[])
 	struct passwd *pw;
 	int i, sock;
 	uid_t uid;
+	bool_t minus_v_save;
 	int timeout = 0;
 
 	outbytes = 0;
@@ -1522,7 +1523,12 @@ int ssmtp(char *argv[])
 #ifdef MD5AUTH
 		}
 #endif
+		/* We do NOT want the password output to STDERR
+		 * even base64 encoded.*/
+		minus_v_save = minus_v;
+		minus_v = False;
 		outbytes += smtp_write(sock, "%s", buf);
+		minus_v = minus_v_save;
 		(void)alarm((unsigned) MEDWAIT);
 
 		if(smtp_okay(sock, buf) == False) {
