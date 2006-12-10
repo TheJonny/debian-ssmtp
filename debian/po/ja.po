@@ -14,21 +14,21 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: ssmtp 2.60.11\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: ssmtp 2.61-10\n"
+"Report-Msgid-Bugs-To: Anibal Monsalve Salazar <anibal@debian.org>\n"
 "POT-Creation-Date: 2006-06-04 21:34-0500\n"
-"PO-Revision-Date: 2004-08-01 01:39+0900\n"
-"Last-Translator: Hideki Yamane <henrich@samba.gr.jp>\n"
+"PO-Revision-Date: 2006-10-19 23:52+0900\n"
+"Last-Translator: Hideki Yamane(Debian-JP) <henrich@debian.or.jp>\n"
 "Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=EUC-JP\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Type: boolean
 #. Description
 #: ../templates:4
 msgid "Automatically overwrite config files?"
-msgstr "ÀßÄê¥Õ¥¡¥¤¥ë¤ò¼«Æ°Åª¤Ë¾å½ñ¤­¤·¤Ş¤¹¤«?"
+msgstr "è¨­å®šãƒ•ã‚¡ã‚¤ãƒ«ã‚’è‡ªå‹•çš„ã«ä¸Šæ›¸ãã—ã¾ã™ã‹?"
 
 #. Type: boolean
 #. Description
@@ -40,17 +40,16 @@ msgid ""
 "control of this file yourself) then set this option to have the program "
 "never touch this file."
 msgstr ""
-"¥á¡¼¥ëÀßÄê¥Õ¥¡¥¤¥ë¤Î /etc/ssmtp/ssmtp.conf ¤òËè²ó¤Î¥¢¥Ã¥×¥°¥ì¡¼¥É»ş¤Ë "
-"debconf ¥Ç¡¼¥¿¥Ù¡¼¥¹¤ËÍ¿¤¨¤é¤ì¤¿¾ğÊó¤Ç¼«Æ°Åª¤Ë¹¹¿·¤Ç¤­¤Ş¤¹¡£¤³¤ì¤¬·ù¤Ê¾ì¹ç "
-"(¤Ä¤Ş¤ê¡¢¥Õ¥¡¥¤¥ë¤ò¼«Ê¬¼«¿È¤ÇÀßÄê¤·¤Ä¤Å¤±¤¿¤¤¾ì¹ç)¡¢¤³¤Î¥ª¥×¥·¥ç¥ó¤ò»ØÄê¤·¤Æ"
-"¥×¥í¥°¥é¥à¤¬¤³¤Î¥Õ¥¡¥¤¥ë¤ò¿¨¤é¤Ê¤¤¤è¤¦¤Ë¤·¤Æ¤¯¤À¤µ¤¤¡£"
+"ãƒ¡ãƒ¼ãƒ«è¨­å®šãƒ•ã‚¡ã‚¤ãƒ«ã® /etc/ssmtp/ssmtp.conf ã‚’æ¯å›ã®ã‚¢ãƒƒãƒ—ã‚°ãƒ¬ãƒ¼ãƒ‰æ™‚ã« "
+"debconf ãƒ‡ãƒ¼ã‚¿ãƒ™ãƒ¼ã‚¹ã«ä¸ãˆã‚‰ã‚ŒãŸæƒ…å ±ã§è‡ªå‹•çš„ã«æ›´æ–°ã§ãã¾ã™ã€‚ã“ã‚ŒãŒå«Œãªå ´åˆ "
+"(ã¤ã¾ã‚Šã€ãƒ•ã‚¡ã‚¤ãƒ«ã‚’è‡ªåˆ†è‡ªèº«ã§è¨­å®šã—ã¤ã¥ã‘ãŸã„å ´åˆ)ã€ã“ã®ã‚ªãƒ—ã‚·ãƒ§ãƒ³ã‚’æŒ‡å®šã—ã¦"
+"ãƒ—ãƒ­ã‚°ãƒ©ãƒ ãŒã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚’è§¦ã‚‰ãªã„ã‚ˆã†ã«ã—ã¦ãã ã•ã„ã€‚"
 
 #. Type: string
 #. Description
 #: ../templates:14
-#, fuzzy
 msgid "Who gets mail for userids < 1000:"
-msgstr "¥æ¡¼¥¶ ID ¤¬ 1000 Ì¤Ëş¤Î¥á¡¼¥ë¤ÏÃ¯¤¬¼õ¤±¼è¤ê¤Ş¤¹¤«?"
+msgstr "ãƒ¦ãƒ¼ã‚¶ ID ãŒ 1000 æœªæº€ã®ãƒ¡ãƒ¼ãƒ«ã‚’å—ã‘å–ã‚‹ãƒ¦ãƒ¼ã‚¶:"
 
 #. Type: string
 #. Description
@@ -60,16 +59,15 @@ msgid ""
 "here. This is useful for daemons which mail reports to root and other system "
 "UIDs. Make this empty to disable rewriting."
 msgstr ""
-"UID ¤¬ 1000 Ì¤Ëş¤Î¥í¡¼¥«¥ë¥æ¡¼¥¶¤Ø¤Î¥á¡¼¥ë¤Ï¡¢Âå¤ï¤ê¤Ë¤³¤³¤Ç»ØÄê¤·¤¿¥¢¥É¥ì¥¹"
-"¤ØÁ÷¤é¤ì¤Ş¤¹¡£¤³¤ì¤Ï¡¢root ¤ä¤Û¤«¤Î¥·¥¹¥Æ¥à UID ¤Ø¤Î¥á¡¼¥ë¥ì¥İ¡¼¥È¤òÁ÷¤ë¥Ç¡¼"
-"¥â¥ó¤Ë¤È¤Ã¤ÆÌò¤ËÎ©¤Á¤Ş¤¹¡£¤³¤ì¤ò¶õ¤Ë¤·¤Æ¤ª¤¯¤È¾å½ñ¤­¤Ï¤µ¤ì¤Ş¤»¤ó¡£"
+"UID ãŒ 1000 æœªæº€ã®ãƒ­ãƒ¼ã‚«ãƒ«ãƒ¦ãƒ¼ã‚¶ã¸ã®ãƒ¡ãƒ¼ãƒ«ã¯ã€ä»£ã‚ã‚Šã«ã“ã“ã§æŒ‡å®šã—ãŸã‚¢ãƒ‰ãƒ¬ã‚¹"
+"ã¸é€ã‚‰ã‚Œã¾ã™ã€‚ã“ã‚Œã¯ã€root ã‚„ã»ã‹ã®ã‚·ã‚¹ãƒ†ãƒ  UID ã¸ã®ãƒ¡ãƒ¼ãƒ«ãƒ¬ãƒãƒ¼ãƒˆã‚’é€ã‚‹ãƒ‡ãƒ¼"
+"ãƒ¢ãƒ³ã«ã¨ã£ã¦å½¹ã«ç«‹ã¡ã¾ã™ã€‚ã“ã‚Œã‚’ç©ºã«ã—ã¦ãŠãã¨ä¸Šæ›¸ãã¯ã•ã‚Œã¾ã›ã‚“ã€‚"
 
 #. Type: string
 #. Description
 #: ../templates:23
-#, fuzzy
 msgid "Name of your mailhub:"
-msgstr "¥á¡¼¥ë¥Ï¥Ö¤ÎÌ¾Á°¤Ï²¿¤Ç¤¹¤«?"
+msgstr "ãƒ¡ãƒ¼ãƒ«ãƒãƒ–ã®åå‰:"
 
 #. Type: string
 #. Description
@@ -79,16 +77,15 @@ msgid ""
 "required; no MX records are consulted. Commonly, mailhosts are named \"mail."
 "domain.com\"."
 msgstr ""
-"¥á¡¼¥ë¤¬ÇÛÁ÷¤µ¤ì¤ë¥Û¥¹¥È¤ò¤³¤³¤ÇÀßÄê¤·¤Ş¤¹¡£¼Âºİ¤Î¥Ş¥·¥óÌ¾¤¬É¬Í×¤Ç¤¹: MX ¥ì"
-"¥³¡¼¥É¤Ï¹ÍÎ¸¤µ¤ì¤Ş¤»¤ó¡£ÂçÄñ¤Î¾ì¹ç¡¢¥á¡¼¥ë¥Û¥¹¥È¤ÎÌ¾Á°¤Ï \"mail.domain.com\" "
-"¤Ç¤¹¡£"
+"ãƒ¡ãƒ¼ãƒ«ãŒé…é€ã•ã‚Œã‚‹ãƒ›ã‚¹ãƒˆã‚’ã“ã“ã§è¨­å®šã—ã¾ã™ã€‚å®Ÿéš›ã®ãƒã‚·ãƒ³åãŒå¿…è¦ã§ã™: MX ãƒ¬"
+"ã‚³ãƒ¼ãƒ‰ã¯è€ƒæ…®ã•ã‚Œã¾ã›ã‚“ã€‚å¤§æŠµã®å ´åˆã€ãƒ¡ãƒ¼ãƒ«ãƒ›ã‚¹ãƒˆã®åå‰ã¯ \"mail.domain.com\" "
+"ã§ã™ã€‚"
 
 #. Type: string
 #. Description
 #: ../templates:31
-#, fuzzy
 msgid "Remote SMTP port number:"
-msgstr "¥ê¥â¡¼¥È SMTP ¥µ¡¼¥Ğ¤Î¥İ¡¼¥ÈÈÖ¹æ¤Ï²¿¤Ç¤¹¤«?"
+msgstr "ãƒªãƒ¢ãƒ¼ãƒˆ SMTP ã‚µãƒ¼ãƒã®ãƒãƒ¼ãƒˆç•ªå·:"
 
 #. Type: string
 #. Description
@@ -97,15 +94,14 @@ msgid ""
 "If your remote SMTP server listens on a port other than 25 (Standard/RFC) "
 "then set it here."
 msgstr ""
-"¥ê¥â¡¼¥È SMTP ¥µ¡¼¥Ğ¤¬ 25 ÈÖ (É¸½à¡¦RFC¤Çµ¬Äê) °Ê³°¤Î¥İ¡¼¥È¤Ç listen ¤·¤Æ¤¤¤ë"
-"¾ì¹ç¡¢¤³¤³¤Ç»ØÄê¤·¤Æ¤¯¤À¤µ¤¤¡£"
+"ãƒªãƒ¢ãƒ¼ãƒˆ SMTP ã‚µãƒ¼ãƒãŒ 25 ç•ª (æ¨™æº–ãƒ»RFCã§è¦å®š) ä»¥å¤–ã®ãƒãƒ¼ãƒˆã§ listen ã—ã¦ã„ã‚‹"
+"å ´åˆã€ã“ã“ã§æŒ‡å®šã—ã¦ãã ã•ã„ã€‚"
 
 #. Type: string
 #. Description
 #: ../templates:37
-#, fuzzy
 msgid "What domain to masquerade as:"
-msgstr "¤É¤Î¥É¥á¥¤¥ó¤È¤·¤Æ¥á¡¼¥ë¤òÁ÷¤ê¤Ş¤¹¤«?"
+msgstr "ã©ã®ãƒ‰ãƒ¡ã‚¤ãƒ³ã¨ã—ã¦é€ä¿¡ã™ã‚‹ã‹:"
 
 #. Type: string
 #. Description
@@ -114,15 +110,14 @@ msgid ""
 "ssmtp will use \"username@REWRITEDOMAIN\" as the default From: address for "
 "outgoing mail which contains only a local username."
 msgstr ""
-"ssmtp ¤Ï¥í¡¼¥«¥ë¥æ¡¼¥¶Ì¾¤Î¤ß¤Ç³°Éô¤ØÁ÷¿®¤µ¤ì¤ë¥á¡¼¥ë¤ËÂĞ¤·¡¢É¸½à¤Î From: ¥¢¥É"
-"¥ì¥¹¤È¤·¤Æ \"username@REWRITEDOMAIN\" ¤òÍøÍÑ¤·¤Ş¤¹¡£"
+"ssmtp ã¯ãƒ­ãƒ¼ã‚«ãƒ«ãƒ¦ãƒ¼ã‚¶åã®ã¿ã§å¤–éƒ¨ã¸é€ä¿¡ã•ã‚Œã‚‹ãƒ¡ãƒ¼ãƒ«ã«å¯¾ã—ã€æ¨™æº–ã® From: ã‚¢ãƒ‰"
+"ãƒ¬ã‚¹ã¨ã—ã¦ \"username@REWRITEDOMAIN\" ã‚’åˆ©ç”¨ã—ã¾ã™ã€‚"
 
 #. Type: string
 #. Description
 #: ../templates:43
-#, fuzzy
 msgid "What name to store in /etc/mailname:"
-msgstr "/etc/mailname ¤Ë¤É¤ÎÌ¾Á°¤òµ­½Ò¤·¤Ş¤¹¤«"
+msgstr "/etc/mailname ã«è¨˜è¿°ã™ã‚‹åå‰:"
 
 #. Type: string
 #. Description
@@ -131,15 +126,14 @@ msgid ""
 "This is the portion of the address after the '@' sign to be shown on "
 "outgoing news and mail messages."
 msgstr ""
-"¤³¤ì¤Ï³°Éô¤ØÁ÷¿®¤µ¤ì¤ë¥Ë¥å¡¼¥¹¤È¥á¡¼¥ë¤Ç»È¤ï¤ì¤ë '@' ¤Î¸å¤Ëµ­½Ò¤¹¤ë¥¢¥É¥ì¥¹Éô"
-"Ê¬¤Ç¤¹¡£"
+"ã“ã‚Œã¯å¤–éƒ¨ã¸é€ä¿¡ã•ã‚Œã‚‹ãƒ‹ãƒ¥ãƒ¼ã‚¹ã¨ãƒ¡ãƒ¼ãƒ«ã§ä½¿ã‚ã‚Œã‚‹ '@' ã®å¾Œã«è¨˜è¿°ã™ã‚‹ã‚¢ãƒ‰ãƒ¬ã‚¹éƒ¨"
+"åˆ†ã§ã™ã€‚"
 
 #. Type: string
 #. Description
 #: ../templates:49
-#, fuzzy
 msgid "Fully qualified hostname:"
-msgstr "FQDN ¤Ï²¿¤Ç¤¹¤«?"
+msgstr "FQDN (å®Œå…¨ä¿®é£¾ãƒ‰ãƒ¡ã‚¤ãƒ³å):"
 
 #. Type: string
 #. Description
@@ -148,14 +142,14 @@ msgid ""
 "This should specify the real hostname of this machine, and will be sent to "
 "the mailhub when delivering mail."
 msgstr ""
-"¤³¤³¤Ç¤Ï¡¢¤³¤Î¥Ş¥·¥ó¤Î¼Âºİ¤Î¥Û¥¹¥ÈÌ¾¤ò»ØÄê¤·¡¢¥á¡¼¥ëÁ÷¿®»ş¤Ë¥á¡¼¥ë¥Ï¥Ö¤ØÁ÷¤ê"
-"¤Ş¤¹¡£"
+"ã“ã“ã§ã¯ã€ã“ã®ãƒã‚·ãƒ³ã®å®Ÿéš›ã®ãƒ›ã‚¹ãƒˆåã‚’æŒ‡å®šã—ã€ãƒ¡ãƒ¼ãƒ«é€ä¿¡æ™‚ã«ãƒ¡ãƒ¼ãƒ«ãƒãƒ–ã¸é€ã‚Š"
+"ã¾ã™ã€‚"
 
 #. Type: boolean
 #. Description
 #: ../templates:56
 msgid "Allow override of From: line in email header?"
-msgstr "¥á¡¼¥ë¥Ø¥Ã¥À¤Î From: ¹Ô¤Î¾å½ñ¤­¤òµö²Ä¤·¤Ş¤¹¤«?"
+msgstr "ãƒ¡ãƒ¼ãƒ«ãƒ˜ãƒƒãƒ€ã® From: è¡Œã®ä¸Šæ›¸ãã‚’è¨±å¯ã—ã¾ã™ã‹?"
 
 #. Type: boolean
 #. Description
@@ -167,7 +161,7 @@ msgid ""
 "this, and use only the default address or addresses set in /etc/ssmtp/"
 "revaliases."
 msgstr ""
-"¡Ö¤Ï¤¤¡×¤ÈÅú¤¨¤ë¤È¡¢¥í¡¼¥«¥ë¥æ¡¼¥¶¤Ï¥á¥Ã¥»¡¼¥¸Ãæ¤Î From: ¹Ô¤ò¼«Í³¤Ëµ­½Ò¤Ç¤­¡¢"
-"ssmtp ¤Ë¤¤¤¸¤é¤ì¤ë¤³¤È¤Ï¤¢¤ê¤Ş¤»¤ó¡£ssmtp ¤Ï envelope ¤ò¤½¤Î¥¢¥É¥ì¥¹¤Ç½ñ¤­´¹"
-"¤¨¤Ş¤¹¡£¡Ö¤¤¤¤¤¨¡×¤ÈÅú¤¨¤ë¤È¤³¤Î¤è¤¦¤ÊÆ°ºî¤Ï¤»¤º¡¢¥Ç¥Õ¥©¥ë¥È¤Î¥¢¥É¥ì¥¹¤« /"
-"etc/ssmtp/revaliases ¤Ç»ØÄê¤µ¤ì¤¿¥¢¥É¥ì¥¹¤Î¤ß¤ò»È¤¤¤Ş¤¹¡£"
+"ã€Œã¯ã„ã€ã¨ç­”ãˆã‚‹ã¨ã€ãƒ­ãƒ¼ã‚«ãƒ«ãƒ¦ãƒ¼ã‚¶ã¯ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ä¸­ã® From: è¡Œã‚’è‡ªç”±ã«è¨˜è¿°ã§ãã€"
+"ssmtp ã«ã„ã˜ã‚‰ã‚Œã‚‹ã“ã¨ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚ssmtp ã¯ envelope ã‚’ãã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã§æ›¸ãæ›"
+"ãˆã¾ã™ã€‚ã€Œã„ã„ãˆã€ã¨ç­”ãˆã‚‹ã¨ã“ã®ã‚ˆã†ãªå‹•ä½œã¯ã›ãšã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã‹ /"
+"etc/ssmtp/revaliases ã§æŒ‡å®šã•ã‚ŒãŸã‚¢ãƒ‰ãƒ¬ã‚¹ã®ã¿ã‚’ä½¿ã„ã¾ã™ã€‚"
