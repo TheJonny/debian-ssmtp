@@ -1,3 +1,12 @@
+ssmtp (2.61-11.1) unstable; urgency=low
+
+  * Non-maintainer upload to fix pending l10n issues.
+  * Debconf translations:
+    - German. Closes: #407856
+    - Galician. Closes: #413577
+
+ -- Christian Perrier <bubulle@debian.org>  Tue,  6 Mar 2007 18:20:22 +0100
+
 ssmtp (2.61-11) unstable; urgency=low
 
   * ACK NMU. Closes: #369542.
