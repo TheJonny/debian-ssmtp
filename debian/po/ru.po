@@ -1,5 +1,6 @@
+# translation of ssmtp_2.61-11_ru.po to Russian
 # translation of ssmtp_2.61-3_ru.po to Russian
-# 
+#
 #    Translators, if you are not familiar with the PO format, gettext
 #    documentation is worth reading, especially sections dedicated to
 #    this format, e.g. by running:
@@ -10,29 +11,31 @@
 #         or http://www.debian.org/intl/l10n/po-debconf/README-trans#
 #    Developers do not need to manually edit POT or PO files.
 # Yuriy Talakan' <yt@amur.elektra.ru>, 2006.
-# 
+# Yuriy Talakan' <yt@drsk.ru>, 2007.
+#
 msgid ""
 msgstr ""
-"Project-Id-Version: ssmtp_2.61-3_ru\n"
+"Project-Id-Version: ssmtp_2.61-11_ru\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-06-04 21:34-0500\n"
-"PO-Revision-Date: 2006-05-14 22:24+1000\n"
-"Last-Translator: Yuriy Talakan' <yt@amur.elektra.ru>\n"
+"POT-Creation-Date: 2007-01-13 20:18+0100\n"
+"PO-Revision-Date: 2007-03-09 11:38+0900\n"
+"Last-Translator: Yuriy Talakan' <yt@drsk.ru>\n"
 "Language-Team: Russian <debian-l10n-russian@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.9.1\n"
+"Plural-Forms:  nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #. Type: boolean
 #. Description
-#: ../templates:4
+#: ../templates:1001
 msgid "Automatically overwrite config files?"
 msgstr "Автоматически перезаписывать файлы настройки?"
 
 #. Type: boolean
 #. Description
-#: ../templates:4
+#: ../templates:1001
 msgid ""
 "The mail configuration file /etc/ssmtp/ssmtp.conf can be automatically "
 "updated on each upgrade with the information supplied to the debconf "
@@ -48,14 +51,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:14
-#, fuzzy
+#: ../templates:2001
 msgid "Who gets mail for userids < 1000:"
-msgstr "Кто получает почту для пользовательских идентификаторов < 1000?"
+msgstr "Кто получает почту для пользовательских идентификаторов < 1000:"
 
 #. Type: string
 #. Description
-#: ../templates:14
+#: ../templates:2001
 msgid ""
 "Mail sent to a local user whose UID is less than 1000 will instead be sent "
 "here. This is useful for daemons which mail reports to root and other system "
@@ -68,14 +70,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:23
-#, fuzzy
+#: ../templates:3001
 msgid "Name of your mailhub:"
-msgstr "Имя вашего почтового концентратора?"
+msgstr "Имя вашего почтового концентратора:"
 
 #. Type: string
 #. Description
-#: ../templates:23
+#: ../templates:3001
 msgid ""
 "This sets the host to which mail is delivered. The actual machine name is "
 "required; no MX records are consulted. Commonly, mailhosts are named \"mail."
@@ -87,14 +88,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:31
-#, fuzzy
+#: ../templates:4001
 msgid "Remote SMTP port number:"
-msgstr "Номер удаленного SMTP-порта"
+msgstr "Номер удаленного SMTP-порта:"
 
 #. Type: string
 #. Description
-#: ../templates:31
+#: ../templates:4001
 msgid ""
 "If your remote SMTP server listens on a port other than 25 (Standard/RFC) "
 "then set it here."
@@ -104,14 +104,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:37
-#, fuzzy
+#: ../templates:5001
 msgid "What domain to masquerade as:"
-msgstr "Под какой домен маскарадить?"
+msgstr "Под какой домен маскарадить:"
 
 #. Type: string
 #. Description
-#: ../templates:37
+#: ../templates:5001
 msgid ""
 "ssmtp will use \"username@REWRITEDOMAIN\" as the default From: address for "
 "outgoing mail which contains only a local username."
@@ -122,14 +121,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:43
-#, fuzzy
+#: ../templates:6001
 msgid "What name to store in /etc/mailname:"
-msgstr "Какое имя хранить в /etc/mailname"
+msgstr "Какое имя хранить в /etc/mailname:"
 
 #. Type: string
 #. Description
-#: ../templates:43
+#: ../templates:6001
 msgid ""
 "This is the portion of the address after the '@' sign to be shown on "
 "outgoing news and mail messages."
@@ -139,14 +137,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:49
-#, fuzzy
+#: ../templates:7001
 msgid "Fully qualified hostname:"
-msgstr "Полное доменное имя машины?"
+msgstr "Полное доменное имя машины:"
 
 #. Type: string
 #. Description
-#: ../templates:49
+#: ../templates:7001
 msgid ""
 "This should specify the real hostname of this machine, and will be sent to "
 "the mailhub when delivering mail."
@@ -156,13 +153,13 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../templates:56
+#: ../templates:8001
 msgid "Allow override of From: line in email header?"
 msgstr "Разрешить переопределение строки From: в заголовке email?"
 
 #. Type: boolean
 #. Description
-#: ../templates:56
+#: ../templates:8001
 msgid ""
 "A \"positive\" response will permit local users to enter any From: line in "
 "their messages without it being mangled, and cause ssmtp to rewrite the "
@@ -175,3 +172,4 @@ msgstr ""
 "конверта на этот адрес. \"Отрицательный\" ответ запретит такое поведение, "
 "будет использован только адрес по умолчанию или адрес, заданный в /etc/ssmtp/"
 "revaliases."
+
