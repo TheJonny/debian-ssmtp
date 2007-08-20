@@ -1,3 +1,13 @@
+ssmtp (2.61-12.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix typo in logcheck regex (Closes: #427737).
+  * cdebconf transition: allow the dependency on debconf to be satisfied with
+    an alternate of debconf-2.0 (Closes: #332105).
+
+
+ -- Amaya Rodrigo Sastre <amaya@debian.org>  Mon, 20 Aug 2007 21:08:14 +0200
+
 ssmtp (2.61-12) unstable; urgency=low
 
   * Updated Russian Debconf translation. (Closes: #414081)
