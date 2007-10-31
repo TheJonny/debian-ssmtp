@@ -1,3 +1,10 @@
+ssmtp (2.61-13) unstable; urgency=low
+
+  * Added Italian po-debconf translation. (Closes: #446158)
+  * Added Vcs-Svn and Vcs-Broswer entries in debian/control
+
+ -- Santiago Ruano Rincón <santiago@debian.org>  Wed, 31 Oct 2007 11:53:05 +0100
+
 ssmtp (2.61-12.1) unstable; urgency=low
 
   * Non-maintainer upload.

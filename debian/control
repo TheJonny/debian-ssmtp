@@ -5,6 +5,8 @@ Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
 Uploaders: Santiago Ruano Rincón <santiago@debian.org>
 Build-Depends: po-debconf, libgnutls-dev
 Standards-Version: 3.7.2
+Vcs-Svn: svn://svn.debian.org/ssmtp/
+Vcs-Browser: http://svn.debian.org/wsvn/ssmtp
 
 Package: ssmtp
 Architecture: any
