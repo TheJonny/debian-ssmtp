@@ -1,3 +1,13 @@
+ssmtp (2.62-1) unstable; urgency=low
+
+  * New upstream version 
+    - New COPYRIGHT file. Closes: #456442
+  * Updated debian/copyright
+  * Bumped Standards-Version to 3.7.3
+  * Use quilt to maintain patches
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Fri, 07 Mar 2008 07:16:20 +1100
+
 ssmtp (2.61-13) unstable; urgency=low
 
   * Added Italian po-debconf translation. (Closes: #446158)

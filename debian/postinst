@@ -1,7 +1,4 @@
 #!/bin/sh -e
-#
-# $Id: postinst,v 1.14 2002/10/25 09:36:19 matt Exp $
-#
 
 if test -L /usr/doc/ssmtp
 then

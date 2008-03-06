@@ -1,7 +1,4 @@
 #!/bin/sh -e
-#
-# $Id: config,v 1.7 2001/04/16 12:09:00 matt Exp $
-#
 
 . /usr/share/debconf/confmodule
 

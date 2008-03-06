@@ -1,7 +1,5 @@
 /*
 
- $Id: ssmtp.c,v 2.60 2003/08/17 14:17:57 matt Exp $
-
  sSMTP -- send messages via SMTP to a mailhub for local delivery or forwarding.
  This program is used in place of /usr/sbin/sendmail, called by "mail" (et all).
  sSMTP does a selected subset of sendmail's standard tasks (including exactly
@@ -12,7 +10,7 @@
  See COPYRIGHT for the license
 
 */
-#define VERSION "2.61"
+#define VERSION "2.62"
 #define _GNU_SOURCE
 
 #include <sys/socket.h>
@@ -28,7 +26,11 @@
 #include <ctype.h>
 #include <netdb.h>
 #ifdef HAVE_SSL
-#include <gnutls/openssl.h>
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #endif
 #ifdef MD5AUTH
 #include "md5auth/hmac_md5.h"
@@ -1128,7 +1130,7 @@ int smtp_open(char *host, int port)
 	}
 
 	if(use_cert == True) { 
-		if(SSL_CTX_use_certificate_file(ctx, tls_cert, SSL_FILETYPE_PEM) <= 0) {
+		if(SSL_CTX_use_certificate_chain_file(ctx, tls_cert) <= 0) {
 			perror("Use certfile");
 			return(-1);
 		}
@@ -1138,12 +1140,10 @@ int smtp_open(char *host, int port)
 			return(-1);
 		}
 
-#ifdef NOT_USED
 		if(!SSL_CTX_check_private_key(ctx)) {
 			log_event(LOG_ERR, "Private key does not match the certificate public key\n");
 			return(-1);
 		}
-#endif
 	}
 #endif
 
