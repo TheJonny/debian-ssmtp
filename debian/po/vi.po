@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ssmtp 2.61-3\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-06-04 21:34-0500\n"
+"Report-Msgid-Bugs-To: ssmtp@packages.debian.org\n"
+"POT-Creation-Date: 2008-10-07 07:21+0200\n"
 "PO-Revision-Date: 2005-07-25 13:15+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
@@ -18,13 +18,13 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../templates:4
+#: ../templates:1001
 msgid "Automatically overwrite config files?"
 msgstr "Tự động ghi đè lên tập tin cấu hình không?"
 
 #. Type: boolean
 #. Description
-#: ../templates:4
+#: ../templates:1001
 msgid ""
 "The mail configuration file /etc/ssmtp/ssmtp.conf can be automatically "
 "updated on each upgrade with the information supplied to the debconf "
@@ -40,14 +40,14 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:14
+#: ../templates:2001
 #, fuzzy
 msgid "Who gets mail for userids < 1000:"
 msgstr "Ai nhận thư cho UID dưới 1000?"
 
 #. Type: string
 #. Description
-#: ../templates:14
+#: ../templates:2001
 msgid ""
 "Mail sent to a local user whose UID is less than 1000 will instead be sent "
 "here. This is useful for daemons which mail reports to root and other system "
@@ -60,14 +60,14 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:23
+#: ../templates:3001
 #, fuzzy
 msgid "Name of your mailhub:"
 msgstr "Thiết bị trung tâm mạng thư bạn có tên nào?"
 
 #. Type: string
 #. Description
-#: ../templates:23
+#: ../templates:3001
 msgid ""
 "This sets the host to which mail is delivered. The actual machine name is "
 "required; no MX records are consulted. Commonly, mailhosts are named \"mail."
@@ -78,14 +78,14 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:31
+#: ../templates:4001
 #, fuzzy
 msgid "Remote SMTP port number:"
 msgstr "Số hiệu cổng SMTP ở xa"
 
 #. Type: string
 #. Description
-#: ../templates:31
+#: ../templates:4001
 msgid ""
 "If your remote SMTP server listens on a port other than 25 (Standard/RFC) "
 "then set it here."
@@ -95,32 +95,32 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:37
+#: ../templates:5001
 #, fuzzy
 msgid "What domain to masquerade as:"
 msgstr "Sẽ giả trang là miền nào?"
 
 #. Type: string
 #. Description
-#: ../templates:37
+#: ../templates:5001
 msgid ""
 "ssmtp will use \"username@REWRITEDOMAIN\" as the default From: address for "
 "outgoing mail which contains only a local username."
 msgstr ""
 "Trình ssmtp sẽ dùng « username@REWRITEDOMAIN » (tên_người_dùng@GHI_LẠI_MIỀN) "
-"là địa chỉ « Từ: » (From:) mặc định cho các thư gởi đi chứa chỉ một tên "
-"người dùng địa phương."
+"là địa chỉ « Từ: » (From:) mặc định cho các thư gởi đi chứa chỉ một tên người "
+"dùng địa phương."
 
 #. Type: string
 #. Description
-#: ../templates:43
+#: ../templates:6001
 #, fuzzy
 msgid "What name to store in /etc/mailname:"
 msgstr "Cất giữ tên nào vào « /etc/mailname »?"
 
 #. Type: string
 #. Description
-#: ../templates:43
+#: ../templates:6001
 msgid ""
 "This is the portion of the address after the '@' sign to be shown on "
 "outgoing news and mail messages."
@@ -130,14 +130,14 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../templates:49
+#: ../templates:7001
 #, fuzzy
 msgid "Fully qualified hostname:"
 msgstr "Tên miền khả năng đầy đủ?"
 
 #. Type: string
 #. Description
-#: ../templates:49
+#: ../templates:7001
 msgid ""
 "This should specify the real hostname of this machine, and will be sent to "
 "the mailhub when delivering mail."
@@ -147,13 +147,13 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../templates:56
+#: ../templates:8001
 msgid "Allow override of From: line in email header?"
 msgstr "Cho phép đè dòng « Từ: » (From:) trong phần đầu thư không?"
 
 #. Type: boolean
 #. Description
-#: ../templates:56
+#: ../templates:8001
 msgid ""
 "A \"positive\" response will permit local users to enter any From: line in "
 "their messages without it being mangled, and cause ssmtp to rewrite the "
@@ -161,8 +161,8 @@ msgid ""
 "this, and use only the default address or addresses set in /etc/ssmtp/"
 "revaliases."
 msgstr ""
-"Trả lời « Có » (yes) tại đây sẽ cho phép người dùng địa phương nhập mọi dòng "
-"« Từ: » (From:) vào đây, mà không bị hỏng, và gây ra trình ssmtp ghi lại "
-"phần đầu bao dùng địa chỉ này. Còn trả lời « Không » (no) sẽ không cho phép "
-"tùy chọn này nên dùng chỉ địa chỉ mặc định hoặc địa chỉ được lập trong « /"
-"etc/ssmtp/revaliases »."
+"Trả lời « Có » (yes) tại đây sẽ cho phép người dùng địa phương nhập mọi dòng « "
+"Từ: » (From:) vào đây, mà không bị hỏng, và gây ra trình ssmtp ghi lại phần "
+"đầu bao dùng địa chỉ này. Còn trả lời « Không » (no) sẽ không cho phép tùy "
+"chọn này nên dùng chỉ địa chỉ mặc định hoặc địa chỉ được lập trong « /etc/"
+"ssmtp/revaliases »."
