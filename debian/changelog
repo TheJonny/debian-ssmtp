@@ -1,3 +1,12 @@
+ssmtp (2.62-2.1) unstable; urgency=low
+
+  * NMU.
+  * Only double leading dots at line start and don't overexpand buffer in
+    standardise().  Don't add extra "\r\n" endings in between lines over
+    BUF_SZ bytes long. Closes: #345780
+
+ -- Kari Pahula <kaol@debian.org>  Tue, 04 Nov 2008 15:11:15 +0200
+
 ssmtp (2.62-2) unstable; urgency=low
 
   [ Christian Perrier ]
