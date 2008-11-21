@@ -1,7 +1,7 @@
 Index: ssmtp-2.62/ssmtp.c
 ===================================================================
---- ssmtp-2.62.orig/ssmtp.c	2008-11-04 14:56:56.000000000 +0200
-+++ ssmtp-2.62/ssmtp.c	2008-11-04 15:05:27.000000000 +0200
+--- ssmtp-2.62.orig/ssmtp.c	2008-11-09 11:30:12.000000000 +0200
++++ ssmtp-2.62/ssmtp.c	2008-11-21 11:37:53.000000000 +0200
 @@ -343,28 +343,26 @@
  /*
  standardise() -- Trim off '\n's and double leading dots
@@ -112,16 +112,24 @@ Index: ssmtp-2.62/ssmtp.c
  
  		to64frombits(buf, auth_pass, strlen(auth_pass));
  #ifdef MD5AUTH
-@@ -1631,7 +1631,7 @@
+@@ -1629,28 +1629,40 @@
+ 	  stdio functions like fgets in the first place */
+ 	fcntl(STDIN_FILENO,F_SETFL,O_NONBLOCK);
  
- 	/* don't hang forever when reading from stdin */
- 	while(!feof(stdin) && timeout < MEDWAIT) {
+-	/* don't hang forever when reading from stdin */
+-	while(!feof(stdin) && timeout < MEDWAIT) {
 -		if (!fgets(buf, sizeof(buf), stdin)) {
++	while(!feof(stdin)) {
 +		if (!fgets(buf, bufsize, stdin)) {
  			/* if nothing was received, then no transmission
  			 * over smtp should be done */
  			sleep(1);
-@@ -1639,12 +1639,25 @@
+-			timeout++;
++			/* don't hang forever when reading from stdin */
++			if (++timeout >= MEDWAIT) {
++				log_event(LOG_ERR, "killed: timeout on stdin while reading body -- message saved to dead.letter.");
++				die("Timeout on stdin while reading body");
++			}
  			continue;
  		}
  		/* Trim off \n, double leading .'s */
@@ -130,7 +138,8 @@ Index: ssmtp-2.62/ssmtp.c
 -		outbytes += smtp_write(sock, "%s", buf);
 +		leadingdot = standardise(buf, &linestart);
  
-+		if (linestart) {
++		if (linestart || feof(stdin)) {
++			linestart = True;
 +			outbytes += smtp_write(sock, "%s", leadingdot ? b : buf);
 +		} else {
 +			if (log_level > 0) {
@@ -144,9 +153,15 @@ Index: ssmtp-2.62/ssmtp.c
 +		}
  		(void)alarm((unsigned) MEDWAIT);
  	}
-+	if(feof(stdin) && !linestart) {
+-	/* End of body */
+-
+-	if (timeout >= MEDWAIT) {
+-		log_event(LOG_ERR, "killed: timeout on stdin while reading body -- message saved to dead.letter.");
+-		die("Timeout on stdin while reading body");
++	if(!linestart) {
 +		smtp_write(sock, "");
-+	}
- 	/* End of body */
+ 	}
++	/* End of body */
  
- 	if (timeout >= MEDWAIT) {
+ 	outbytes += smtp_write(sock, ".");
+ 	(void)alarm((unsigned) MAXWAIT);

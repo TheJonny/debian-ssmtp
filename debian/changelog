@@ -1,3 +1,11 @@
+ssmtp (2.62-2.2) unstable; urgency=medium
+
+  * NMU.
+  * Make sure that a CRLF is output even when the message from stdin
+    doesn't have one. Closes: #506188
+
+ -- Kari Pahula <kaol@debian.org>  Fri, 21 Nov 2008 10:09:02 +0200
+
 ssmtp (2.62-2.1) unstable; urgency=low
 
   * NMU.
