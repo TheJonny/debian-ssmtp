@@ -1,3 +1,10 @@
+ssmtp (2.62-3) unstable; urgency=medium
+
+  * Fix pending l10n issues. Debconf translations:
+    - Vietnamese. Closes: #513670
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Sat, 31 Jan 2009 20:06:28 +1100
+
 ssmtp (2.62-2.2) unstable; urgency=medium
 
   * NMU.
