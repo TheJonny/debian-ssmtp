@@ -1,9 +1,39 @@
+ssmtp (2.63-1) unstable; urgency=low
+
+  * New upstream version
+  * Updated debian/copyright
+  * Update 01-374327-use-gnutls.patch
+  * Fix out-of-date-standards-version
+  * Update Vcs-Git and Vcs-Browser in debian/control
+  * Fix maintainer-script-without-set-e
+  * Fix copyright-refers-to-symlink-license
+  * Failover to multiple mailhubs in IPv4. Closes: 351993
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Tue, 07 Jul 2009 14:18:13 +1000
+
+ssmtp (2.62-3ubuntu1) karmic; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+    - Added 01_password-handling patch, enabling the use
+      of ":" for smtp authentications.
+
+ -- Nicolas Valcárcel Scerpella <nvalcarcel@canonical.com>  Mon, 04 May 2009 15:19:53 -0500
+
 ssmtp (2.62-3) unstable; urgency=medium
 
   * Fix pending l10n issues. Debconf translations:
     - Vietnamese. Closes: #513670
 
  -- Anibal Monsalve Salazar <anibal@debian.org>  Sat, 31 Jan 2009 20:06:28 +1100
+
+ssmtp (2.62-2.2ubuntu1) jaunty; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+    - Added 01_password-handling patch, enabling the use
+      of ":" for smtp authentications.
+  * Dropped debian/patches/03_fix_buffer_overflow: debian provides a fix
+
+ -- Nicolas Valcárcel <nvalcarcel@ubuntu.com>  Thu, 18 Dec 2008 02:25:45 -0500
 
 ssmtp (2.62-2.2) unstable; urgency=medium
 
@@ -22,6 +52,22 @@ ssmtp (2.62-2.1) unstable; urgency=low
 
  -- Kari Pahula <kaol@debian.org>  Tue, 04 Nov 2008 15:11:15 +0200
 
+ssmtp (2.62-2ubuntu2) jaunty; urgency=low
+
+  * Removed duplicated entry in debian/patches/series
+
+ -- Nicolas Valcárcel <nvalcarcel@ubuntu.com>  Thu, 06 Nov 2008 21:23:38 -0500
+
+ssmtp (2.62-2ubuntu1) jaunty; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+    - Added 01_password-handling patch, enabling the use
+      of ":" for smtp authentications.
+    - debian/patches/03_fix_buffer_overflow: adjust ssmtp.c to fix
+      a buffer overflow with using 2 bytes in length instead of one in buffer.
+
+ -- Nicolas Valcárcel <nvalcarcel@ubuntu.com>  Wed, 05 Nov 2008 09:09:19 -0500
+
 ssmtp (2.62-2) unstable; urgency=low
 
   [ Christian Perrier ]
@@ -39,15 +85,57 @@ ssmtp (2.62-1.1) unstable; urgency=high
 
  -- Nico Golde <nion@debian.org>  Thu, 02 Oct 2008 14:15:57 +0200
 
+ssmtp (2.62-1ubuntu3) intrepid; urgency=low
+
+  * SECURITY UPDATE: allow remote attackers to obtain sensitive
+    information (LP: #278978)
+  * debian/patches/02-CVE-2008-3962: adjust in ssmtp.c to fix
+    unitialized memory disclosure.
+  * SECURITY UPDATE: Buffer overflow (LP: #282424)
+  * debian/patches/03_fix_buffer_overflow: adjust ssmtp.c to fix
+    a buffer overflow with using 2 bytes in length instead of one in buffer.
+  * References:
+    CVE-2008-3962
+    http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=498366
+
+ -- Stefan Ebner <sebner@ubuntu.com>  Tue, 07 Oct 2008 16:22:39 +0200
+
+ssmtp (2.62-1ubuntu2) intrepid; urgency=low
+
+  * No-change rebuild for libgnutls13 -> libgnutls26 transistion.
+
+ -- Steve Kowalik <stevenk@ubuntu.com>  Sat, 11 Oct 2008 01:31:00 +1100
+
+ssmtp (2.62-1ubuntu1) intrepid; urgency=low
+
+  * Merge from Debian unstable. (LP: #231370) Remaining Ubuntu changes:
+    - Added 01_password-handling patch, enabling the use
+      of ":" for smtp authentications.
+    - Updated maintainer field as per spec.
+
+ -- Stefan Ebner <sebner@ubuntu.com>  Fri,  7 Mar 2008 11:31:32 +0100
+
 ssmtp (2.62-1) unstable; urgency=low
 
-  * New upstream version 
+  * New upstream version
     - New COPYRIGHT file. Closes: #456442
+  * Added Portuguese po-debconf translation. (Closes: #421178)
   * Updated debian/copyright
   * Bumped Standards-Version to 3.7.3
   * Use quilt to maintain patches
 
  -- Anibal Monsalve Salazar <anibal@debian.org>  Fri, 07 Mar 2008 07:16:20 +1100
+
+ssmtp (2.61-13ubuntu1) hardy; urgency=low
+
+  * Merge from Debian unstable. Remaining Ubuntu changes:
+    - Added 01_password-handling patch, enabling the use
+      of ":" for smtp authentications.
+    - Added dpatch B-D in debian/control
+    - Added dpatch support in debian/rules
+    - Updated maintainer field as per spec.
+
+ -- Stefan Ebner <hellboy195@gmail.com>  Thu, 3 Jan 2008 21:10:48 +0200
 
 ssmtp (2.61-13) unstable; urgency=low
 
@@ -55,6 +143,17 @@ ssmtp (2.61-13) unstable; urgency=low
   * Added Vcs-Svn and Vcs-Broswer entries in debian/control
 
  -- Santiago Ruano Rincón <santiago@debian.org>  Wed, 31 Oct 2007 11:53:05 +0100
+
+ssmtp (2.61-12.1ubuntu1) hardy; urgency=low
+
+  * Merge from Debian unstable. Remaining Ubuntu changes:
+    - Added 01_password-handling patch, enabling the use
+      of ":" for smtp authentications.
+    - Added dpatch B-D in debian/control
+    - Added dpatch support in debian/rules
+  * Updated maintainer field as per spec.
+
+ -- Andrea Veri <bluekuja@ubuntu.com>  Sun, 21 Oct 2007 20:52:48 +0200
 
 ssmtp (2.61-12.1) unstable; urgency=low
 
@@ -64,6 +163,14 @@ ssmtp (2.61-12.1) unstable; urgency=low
     an alternate of debconf-2.0 (Closes: #332105).
 
  -- Amaya Rodrigo Sastre <amaya@debian.org>  Mon, 20 Aug 2007 21:08:14 +0200
+
+ssmtp (2.61-12ubuntu1) gutsy; urgency=low
+
+  * Addded password-handling patch, now smtp authentication
+    allows the use of ":" . (LP: #86425)
+  * Maintainer set to MOTU developers
+
+ -- Andrea Veri <bluekuja@ubuntu.com>  Mon, 11 Jun 2007 11:30:55 +0200
 
 ssmtp (2.61-12) unstable; urgency=low
 
@@ -116,7 +223,7 @@ ssmtp (2.61-9) unstable; urgency=low
 ssmtp (2.61-8) unstable; urgency=medium
 
   [ Santiago Ruano Rincón ]
-  * Updated fr.po, by Michel Grentzinger <mic.grentz@online.fr> 
+  * Updated fr.po, by Michel Grentzinger <mic.grentz@online.fr>
     (Closes: #376345)
 
   [ Alejandro Rios ]
@@ -305,7 +412,7 @@ ssmtp (2.60.5) unstable; urgency=low
     Patch by Michel Grentzinger <mic.grentz@online.fr>
   * Added french translation of the debconf templates (Closes: #202274)
     Patch by Michel Grentzinger <mic.grentz@online.fr>
-    
+
  -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Sat, 10 Apr 2004 09:41:51 +1000
 
 ssmtp (2.60.4) unstable; urgency=low
@@ -624,13 +731,13 @@ ssmtp (2.38-1) unstable; urgency=high
 
 ssmtp (2.37-1) unstable; urgency=low
 
-  * New upstream version (closes: #54817). 
+  * New upstream version (closes: #54817).
 
  -- Hugo Haas <hugo@debian.org>  Sun, 20 Feb 2000 22:37:20 -0500
 
 ssmtp (2.36-1) unstable; urgency=low
 
-  * New upstream release: option -f works as expected (closes: #53313). 
+  * New upstream release: option -f works as expected (closes: #53313).
 
  -- Hugo Haas <hugo@debian.org>  Sat,  5 Feb 2000 15:10:43 -0500
 
