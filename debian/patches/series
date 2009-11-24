@@ -1,2 +1,4 @@
 01-374327-use-gnutls.patch
-02-397149-amd64-crammd5.patch
+02-557725-solaris.patch
+03-557741-remote-addr.patch
+debian-changes-2.64-1

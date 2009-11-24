@@ -1,3 +1,19 @@
+ssmtp (2.64-1) unstable; urgency=low
+
+  * New upstream version
+    Delete 02-397149-amd64-crammd5.patch (merged)
+  * Source package format is 3.0 (quilt)
+  * Fix out-of-date-standards-version
+  * Fix malformed-prompt-in-templates
+  * Fix no-homepage-field
+  * Add 02-557725-solaris.patch by Darik Horn to make ssmtp compatible
+    with Solaris 11. Closes: 557725
+  * Add 03-557741-remote-addr.patch by Victor Sudakov to insert the X-
+    Originating-IP header. Closes: 557741
+  * Make AuthUser/AuthPass not visible to all users. Closes: 500454
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Tue, 24 Nov 2009 14:21:52 +1100
+
 ssmtp (2.63-1.1) unstable; urgency=low
 
   * Non-maintainer upload.
