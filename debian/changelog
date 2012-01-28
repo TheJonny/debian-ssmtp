@@ -1,3 +1,13 @@
+ssmtp (2.64-6) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * Fix pending l10n issues. Debconf translations:
+    - Dutch; (Jeroen Schot).  Closes: #654753
+    - Danish (Joe Hansen).  Closes: #654923
+    - Slovak (Ivan Masár).  Closes: #656529
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Sat, 28 Jan 2012 11:55:13 +1100
+
 ssmtp (2.64-5) unstable; urgency=low
 
   [ Iain Lane ]
