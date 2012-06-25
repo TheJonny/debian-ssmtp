@@ -1,3 +1,11 @@
+ssmtp (2.64-6.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Apply patch from David Mearns to fix addition of garbage at end of
+    attachments (closes: Bug#508759)
+
+ -- Ivan Kohler <ivan-debian@420.am>  Sun, 24 Jun 2012 17:02:16 -0700
+
 ssmtp (2.64-6) unstable; urgency=low
 
   [ Christian Perrier ]
