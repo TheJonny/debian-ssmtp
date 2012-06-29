@@ -1,3 +1,11 @@
+ssmtp (2.64-7) unstable; urgency=low
+
+  * Use hardening options
+    Add 05-LDFLAGS.patch
+  * Standards version: 3.9.3
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Sat, 30 Jun 2012 08:41:49 +1000
+
 ssmtp (2.64-6.1) unstable; urgency=low
 
   * Non-maintainer upload.
