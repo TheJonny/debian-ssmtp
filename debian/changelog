@@ -1,3 +1,13 @@
+ssmtp (2.64-7.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Build-Depend on libgnutls-openssl-dev instead of libgnutls-dev to allow
+    transitioning to newer GnuTLS. Closes: #731605
+  * Fix building with umask != 0022 with
+    "chmod 644 debian/tmp/DEBIAN/templates"
+
+ -- Andreas Metzler <ametzler@debian.org>  Fri, 11 Apr 2014 19:40:24 +0200
+
 ssmtp (2.64-7) unstable; urgency=low
 
   * Use hardening options

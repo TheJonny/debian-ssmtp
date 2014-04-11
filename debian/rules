@@ -30,6 +30,7 @@ binary-arch:	checkroot configure build
 	install -d -m 755 -o root -g root debian/tmp/DEBIAN
 	dpkg-gencontrol -isp
 	po2debconf --podir=debian/po debian/templates > debian/tmp/DEBIAN/templates
+	chmod 644 debian/tmp/DEBIAN/templates
 	install -m 644 debian/conffiles debian/tmp/DEBIAN
 	install -m 755 debian/preinst debian/tmp/DEBIAN
 	install -m 755 debian/postinst debian/tmp/DEBIAN
