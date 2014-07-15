@@ -3,7 +3,7 @@ Section: mail
 Priority: extra
 Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
 Build-Depends: dpkg-dev (>= 1.16.1~), po-debconf, libgnutls-openssl-dev
-Standards-Version: 3.9.3
+Standards-Version: 3.9.5
 Vcs-Git: git://git.debian.org/ssmtp/ssmtp.git
 Vcs-Browser: http://git.debian.org/?p=ssmtp/ssmtp.git
 Homepage: http://packages.qa.debian.org/s/ssmtp.html

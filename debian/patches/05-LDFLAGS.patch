@@ -1,5 +1,7 @@
---- a/Makefile.in	2008-02-29 13:50:15.000000000 +1100
-+++ b/Makefile.in	2012-06-30 08:56:17.337703517 +1000
+Index: ssmtp-2.64/Makefile.in
+===================================================================
+--- ssmtp-2.64.orig/Makefile.in
++++ ssmtp-2.64/Makefile.in
 @@ -79,7 +79,7 @@ uninstall-sendmail: uninstall
  
  # Binaries:

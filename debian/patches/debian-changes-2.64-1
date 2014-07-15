@@ -35,9 +35,11 @@ Forwarded: <no|not-needed|url proving that it has been forwarded>
 Reviewed-By: <name and email of someone who approved the patch>
 Last-Update: <YYYY-MM-DD>
 
+Index: ssmtp-2.64/ssmtp.conf.5
+===================================================================
 --- ssmtp-2.64.orig/ssmtp.conf.5
 +++ ssmtp-2.64/ssmtp.conf.5
-@@ -26,7 +26,7 @@ The user that gets all mail for userids 
+@@ -26,7 +26,7 @@ The user that gets all mail for userids
  .Pp
  .It Cm Mailhub
  The host to send mail to, in the form

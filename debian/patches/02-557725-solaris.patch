@@ -2,8 +2,10 @@ http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=557725
 
 Patch by Darik Horn <dajhorn@vanadac.com>
 
---- a/generate_config	2004-07-23 15:58:48.000000000 +1000
-+++ b/generate_config	2009-11-24 11:02:02.000000000 +1100
+Index: ssmtp-2.64/generate_config
+===================================================================
+--- ssmtp-2.64.orig/generate_config
++++ ssmtp-2.64/generate_config
 @@ -1,10 +1,16 @@
 -#!/bin/sh -e
 +#!/bin/bash -e
@@ -23,9 +25,11 @@ Patch by Darik Horn <dajhorn@vanadac.com>
  if test -f /etc/mailname
  then
  	mailname="`head -1 /etc/mailname`"
---- a/ssmtp.c	2009-11-23 20:55:11.000000000 +1100
-+++ b/ssmtp.c	2009-11-24 11:02:02.000000000 +1100
-@@ -97,6 +93,20 @@ static char hextab[]="0123456789abcdef";
+Index: ssmtp-2.64/ssmtp.c
+===================================================================
+--- ssmtp-2.64.orig/ssmtp.c
++++ ssmtp-2.64/ssmtp.c
+@@ -93,6 +93,20 @@ static char hextab[]="0123456789abcdef";
  
  ssize_t outbytes;
  
