@@ -10,6 +10,7 @@
  ssmtp.conf		an optional config file
  ssmtp.c		the source
  ssmtp.h		a few constants
+ ssmtp.lsm		Linux Software Map entry for ssmtp
  ssmtp_bugs.tex		a short history of errors (outdated)	| written at
  ssmtp_bugs.tex		and its source (outdated)		| the very
  ssmtp_plm		program logic manual (outdated)		| beginning
