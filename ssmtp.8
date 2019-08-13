@@ -1,4 +1,4 @@
-.TH SSMTP 8 "Last change: 7 April 1998"
+.TH SSMTP 8 "Last change: 23 October 1998"
 .SH NAME
 ssmtp, sendmail \- send a message using smtp
 .SH SYNOPSIS
@@ -95,11 +95,12 @@ Set debugging value to X.
 
 .TP
 \fB\-F\fP\fIfullname\fP
-(ignored) Set the full name of the sender.
+Set the full name of the sender.
 
 .TP
 \fB\-f\fP\fIname\fP
-(ignored) Sets the name of the ``from'' person.
+Sets the name of the ``from'' person. This option is valid only if no
+From: line is specified within the header of the email.
 
 .TP
 \fB\-h\fP\fI\fN\fP
@@ -208,7 +209,7 @@ Set debugging value to X.
 
 .TP
 \fB\-r\fP\fIname\fP
-(ignored) Same as -f.
+Same as -f.
 
 .TP
 \fB\-R\fP\fIstring\fP

@@ -20,15 +20,3 @@
 extern char *sprintf();	/* Ah yes, backward compatability with errors... */
 extern void	exit();
 #endif
-/* $Header: /team/davecb/Tools/ssmtp/RCS/ssmtp.h,v 1.1 1993/02/23 13:34:54 davecb Exp $ */
-/*
- * $Log: ssmtp.h,v $
- * Revision 1.1  1993/02/23  13:34:54  davecb
- * Initial revision
- *
- * Revision 1.1  1992/06/09  16:11:23  davecb
- * Initial revision
- *
- *
- */
-

@@ -1,6 +1,6 @@
 /*
  *  arpadate.c - get_arpadate() is a function returning the date in the
- *		 ARPANET format (see RFC822 and RFC1123)
+ *               ARPANET format (see RFC822 and RFC1123)
  *  Copyright (C) 1998 Hugo Haas
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -24,11 +24,14 @@
 #include <stdio.h>
 #include <time.h>
 
-void get_arpadate(char *d_string)
+void 
+get_arpadate (char *d_string)
 {
-  static char *week_day[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-  static char *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
-			   "Aug", "Sep", "Oct", "Nov", "Dec"};
+  static char *week_day[] =
+  {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+  static char *month[] =
+  {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
+   "Aug", "Sep", "Oct", "Nov", "Dec"};
   static char timezone[3];
 
   time_t current;
@@ -36,37 +39,38 @@ void get_arpadate(char *d_string)
   int offset, gmt_yday, gmt_hour, gmt_min;
 
   /* Get current time */
-  time(&current);
+  (void) time (&current);
 
   /* Get GMT and then local dates */
-  date = gmtime((const time_t *) &current);
+  date = gmtime ((const time_t *) &current);
   gmt_yday = date->tm_yday;
   gmt_hour = date->tm_hour;
   gmt_min = date->tm_min;
-  date = localtime((const time_t *) &current);
+  date = localtime ((const time_t *) &current);
 
   /* Calculates offset */
 
   offset = (date->tm_hour - gmt_hour) * 60 + (date->tm_min - gmt_min);
   /* Be careful, there can be problems if the day has changed between the
      evaluation of local and gmt's one */
-  if (date->tm_yday != gmt_yday) {
-    if (date->tm_yday == (gmt_yday + 1))
-      offset += 1440;
-    else if (date->tm_yday == (gmt_yday - 1))
-      offset += 1440;
-    else
-      offset += (date->tm_yday > gmt_yday) ? -1440 : 1440;
-  }
+  if (date->tm_yday != gmt_yday)
+    {
+      if (date->tm_yday == (gmt_yday + 1))
+	offset += 1440;
+      else if (date->tm_yday == (gmt_yday - 1))
+	offset += 1440;
+      else
+	offset += (date->tm_yday > gmt_yday) ? -1440 : 1440;
+    }
 
   if (offset >= 0)
-    sprintf(timezone, "+%02d%02d", offset / 60, offset % 60);
+    sprintf (timezone, "+%02d%02d", offset / 60, offset % 60);
   else
-    sprintf(timezone, "-%02d%02d", -offset / 60, -offset % 60);
-    
-  sprintf(d_string, "%s, %d %s %04d %02d:%02d:%02d %s",
-	  week_day[date->tm_wday],
-	  date->tm_mday, month[date->tm_mon], date->tm_year + 1900,
-	  date->tm_hour, date->tm_min, date->tm_sec, timezone);
+    sprintf (timezone, "-%02d%02d", -offset / 60, -offset % 60);
+
+  sprintf (d_string, "%s, %d %s %04d %02d:%02d:%02d %s",
+	   week_day[date->tm_wday],
+	   date->tm_mday, month[date->tm_mon], date->tm_year + 1900,
+	   date->tm_hour, date->tm_min, date->tm_sec, timezone);
 
 }
