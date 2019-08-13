@@ -22,6 +22,12 @@
 #define MAXARGS  _POSIX_ARG_MAX
 #endif
 
+/* ssmtp assumes MAXHOSTNAMELEN is alwyas in sys/param.h this is
+   not always the case (System V/Solaris) */
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 256
+#endif
+
 typedef enum {False, True} bool_t;
 
 struct string_list {

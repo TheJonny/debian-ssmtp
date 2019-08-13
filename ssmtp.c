@@ -1,7 +1,5 @@
 /*
 
- $Id: ssmtp.c,v 2.60 2003/08/17 14:17:57 matt Exp $
-
  sSMTP -- send messages via SMTP to a mailhub for local delivery or forwarding.
  This program is used in place of /usr/sbin/sendmail, called by "mail" (et all).
  sSMTP does a selected subset of sendmail's standard tasks (including exactly
@@ -12,7 +10,8 @@
  See COPYRIGHT for the license
 
 */
-#define VERSION "2.60.4"
+#define VERSION "2.62"
+#define _GNU_SOURCE
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -37,7 +36,8 @@
 #include "md5auth/hmac_md5.h"
 #endif
 #include "ssmtp.h"
-
+#include <fcntl.h>
+#include "xgethostname.h"
 
 bool_t have_date = False;
 bool_t have_from = False;
@@ -51,6 +51,7 @@ bool_t rewrite_domain = False;
 bool_t use_tls = False;			/* Use SSL to transfer mail to HUB */
 bool_t use_starttls = False;		/* SSL only after STARTTLS (RFC2487) */
 bool_t use_cert = False;		/* Use a certificate to transfer SSL mail */
+bool_t use_oldauth = False;		/* use old AUTH LOGIN username style */
 
 #define ARPADATE_LENGTH 32		/* Current date in RFC format */
 char arpadate[ARPADATE_LENGTH];
@@ -59,7 +60,7 @@ char *auth_pass = (char)NULL;
 char *auth_method = (char)NULL;		/* Mechanism for SMTP authentication */
 char *mail_domain = (char)NULL;
 char *from = (char)NULL;		/* Use this as the From: address */
-char hostname[MAXHOSTNAMELEN] = "localhost";
+char *hostname;
 char *mailhost = "mailhub";
 char *minus_f = (char)NULL;
 char *minus_F = (char)NULL;
@@ -68,6 +69,7 @@ char *prog = (char)NULL;
 char *root = NULL;
 char *tls_cert = "/etc/ssl/certs/ssmtp.pem";	/* Default Certificate */
 char *uad = (char)NULL;
+char *config_file = (char)NULL;		/* alternate configuration file */
 
 headers_t headers, *ht;
 
@@ -93,6 +95,7 @@ SSL *ssl;
 static char hextab[]="0123456789abcdef";
 #endif
 
+ssize_t outbytes;
 
 /*
 log_event() -- Write event to syslog (or log file if defined)
@@ -129,7 +132,7 @@ void log_event(int priority, char *format, ...)
 #endif
 }
 
-void smtp_write(int fd, char *format, ...);
+ssize_t smtp_write(int fd, char *format, ...);
 int smtp_read(int fd, char *response);
 int smtp_read_all(int fd, char *response);
 int smtp_okay(int fd, char *response);
@@ -139,7 +142,8 @@ dead_letter() -- Save stdin to ~/dead.letter if possible
 */
 void dead_letter(void)
 {
-	char path[(MAXPATHLEN + 1)], buf[(BUF_SZ + 1)];
+	char *path;
+	char buf[(BUF_SZ + 1)];
 	struct passwd *pw;
 	uid_t uid;
 	FILE *fp;
@@ -150,7 +154,7 @@ void dead_letter(void)
 	if(isatty(fileno(stdin))) {
 		if(log_level > 0) {
 			log_event(LOG_ERR,
-				"stdin is a TTY - not saving to %s/dead.letter, pw->pw_dir");
+				"stdin is a TTY - not saving to %s/dead.letter", pw->pw_dir);
 		}
 		return;
 	}
@@ -163,16 +167,21 @@ void dead_letter(void)
 		return;
 	}
 
-	if(snprintf(path, BUF_SZ, "%s/dead.letter", pw->pw_dir) == -1) {
+#define DEAD_LETTER "/dead.letter"
+	path = malloc (strlen (pw->pw_dir) + sizeof (DEAD_LETTER));
+	if (!path) {
 		/* Can't use die() here since dead_letter() is called from die() */
 		exit(1);
 	}
-
+	memcpy (path, pw->pw_dir, strlen (pw->pw_dir));
+	memcpy (path + strlen (pw->pw_dir), DEAD_LETTER, sizeof (DEAD_LETTER));
+	
 	if((fp = fopen(path, "a")) == (FILE *)NULL) {
 		/* Perhaps the person doesn't have a homedir... */
 		if(log_level > 0) {
 			log_event(LOG_ERR, "Can't open %s failing horribly!", path);
 		}
+		free(path);
 		return;
 	}
 
@@ -189,6 +198,7 @@ void dead_letter(void)
 				"Can't close %s/dead.letter, possibly truncated", pw->pw_dir);
 		}
 	}
+	free(path);
 }
 
 /*
@@ -212,27 +222,22 @@ void die(char *format, ...)
 	exit(1);
 }
 
+#ifndef _GNU_SOURCE
 /*
 basename() -- Return last element of path
 */
 char *basename(char *str)
 {
-	char buf[MAXPATHLEN +1], *p;
+	char *p;
 
-	if((p = strrchr(str, '/'))) {
-		if(strncpy(buf, ++p, MAXPATHLEN) == (char *)NULL) {
-			die("basename() -- strncpy() failed");
-		}
+	p = strrchr(str, '/');
+	if (!p) {
+		p = str;
 	}
-	else {
-		if(strncpy(buf, str, MAXPATHLEN) == (char *)NULL) {
-			die("basename() -- strncpy() failed");
-		}
-	}
-	buf[MAXPATHLEN] = (char)NULL;
 
-	return(strdup(buf));
+	return(strdup(p));
 }
+#endif /* _GNU_SOURCE */
 
 /*
 strip_pre_ws() -- Return pointer to first non-whitespace character
@@ -701,6 +706,10 @@ void header_save(char *str)
 		else if(strncasecmp(ht->string, "Bcc:", 4) == 0) {
 			p = (ht->string + 4);
 			rcpt_parse(p);
+                        /* Undo adding the header to the list: */
+                        free(ht->string);
+                        ht->string = NULL;
+                        return;
 		}
 		else if(strncasecmp(ht->string, "CC:", 3) == 0) {
 			p = (ht->string + 3);
@@ -778,7 +787,66 @@ void header_parse(FILE *stream)
 
 		l = c;
 	}
+	if(in_header) {
+		if(l == '\n') {
+			switch(c) {
+				case ' ':
+				case '\t':
+						/* Must insert '\r' before '\n's embedded in header
+						   fields otherwise qmail won't accept our mail
+						   because a bare '\n' violates some RFC */
+						
+						*(q - 1) = '\r';	/* Replace previous \n with \r */
+						*q++ = '\n';		/* Insert \n */
+						len++;
+						
+						break;
+
+				case '\n':
+						in_header = False;
+
+				default:
+						*q = (char)NULL;
+						if((q = strrchr(p, '\n'))) {
+							*q = (char)NULL;
+						}
+						header_save(p);
+
+						q = p;
+						len = 0;
+			}
+		}
+	}
 	(void)free(p);
+}
+
+/*
+ * This is much like strtok, but does not modify the string
+ * argument.
+ * Args: 
+ * 	char **s:
+ * 		Address of the pointer to the string we are looking at.
+ * 	const char *delim:
+ * 		The set of delimiters.
+ * Return value:
+ *	The first token, copied by strndup (caller have to free it),
+ * 	if a token is found, or NULL if isn't (os strndup fails)
+ * 	*s points to the rest of the string
+ */
+char *firsttok(char **s, const char *delim)
+{
+	char *tok;
+	char *rest;
+	rest=strpbrk(*s,delim);
+	if (!rest) {
+		return NULL;
+	}
+	tok=strndup(*s,rest-(*s));
+	if (!tok) {
+		die("firsttok() -- strndup() failed");
+	}
+	*s=rest+1;
+	return tok;
 }
 
 /*
@@ -789,11 +857,20 @@ bool_t read_config()
 	char buf[(BUF_SZ + 1)], *p, *q, *r;
 	FILE *fp;
 
-	if((fp = fopen(CONFIGURATION_FILE, "r")) == NULL) {
+	if(config_file == (char *)NULL) {
+		config_file = strdup(CONFIGURATION_FILE);
+		if(config_file == (char *)NULL) {
+			die("parse_config() -- strdup() failed");
+		}
+	}
+
+	if((fp = fopen(config_file, "r")) == NULL) {
 		return(False);
 	}
 
 	while(fgets(buf, sizeof(buf), fp)) {
+		char *begin=buf;
+		char *rightside;
 		/* Make comments invisible */
 		if((p = strchr(buf, '#'))) {
 			*p = (char)NULL;
@@ -803,8 +880,12 @@ bool_t read_config()
 		if(strchr(buf, '=') == (char *)NULL) continue;
 
 		/* Parse out keywords */
-		if(((p = strtok(buf, "= \t\n")) != (char *)NULL)
-			&& ((q = strtok(NULL, "= \t\n:")) != (char *)NULL)) {
+		p=firsttok(&begin, "= \t\n");
+		if(p){
+			rightside=begin;
+			q = firsttok(&begin, "= \t\n:");
+		}
+		if(p && q) {
 			if(strcasecmp(p, "Root") == 0) {
 				if((root = strdup(q)) == (char *)NULL) {
 					die("parse_config() -- strdup() failed");
@@ -819,8 +900,9 @@ bool_t read_config()
 					die("parse_config() -- strdup() failed");
 				}
 
-				if((r = strtok(NULL, "= \t\n:")) != NULL) {
+				if((r = firsttok(&begin, "= \t\n:")) != NULL) {
 					port = atoi(r);
+					free(r);
 				}
 
 				if(log_level > 0) {
@@ -829,12 +911,25 @@ bool_t read_config()
 				}
 			}
 			else if(strcasecmp(p, "HostName") == 0) {
-				if(strncpy(hostname, q, MAXHOSTNAMELEN) == NULL) {
-					die("parse_config() -- strncpy() failed");
+				free(hostname);
+				hostname = strdup(q);
+				if (!hostname) {
+					die("parse_config() -- strdup() failed");
 				}
 
 				if(log_level > 0) {
 					log_event(LOG_INFO, "Set HostName=\"%s\"\n", hostname);
+				}
+			}
+			else if(strcasecmp(p,"AddHeader") == 0) {
+				if((r = firsttok(&rightside, "\n#")) != NULL) {
+					header_save(r);
+					free(r);
+				} else {
+					die("cannot AddHeader");
+				}
+				if(log_level > 0 ) {
+					log_event(LOG_INFO, "Set AddHeader=\"%s\"\n", q);
 				}
 			}
 #ifdef REWRITE_DOMAIN
@@ -964,10 +1059,37 @@ bool_t read_config()
 					log_event(LOG_INFO, "Set AuthMethod=\"%s\"\n", auth_method);
 				}
 			}
+			else if(strcasecmp(p, "UseOldAUTH") == 0) {
+				if(strcasecmp(q, "YES") == 0) {
+					use_oldauth = True;
+				}
+				else {
+					use_oldauth = False;
+				}
+ 
+				if(log_level > 0) {
+					log_event(LOG_INFO,
+						"Set UseOldAUTH=\"%s\"\n",
+						use_oldauth ? "True" : "False");
+				}
+			}
+			else if (strcasecmp(p, "Debug") == 0)
+			{
+				if (strcasecmp(q, "YES") == 0)
+				{
+					log_level = 1;
+				}
+				else
+				{
+					log_level = 0;
+				}
+			}
 			else {
 				log_event(LOG_INFO, "Unable to set %s=\"%s\"\n", p, q);
 			}
-		}
+			free(p);
+			free(q);
+		} 
 	}
 	(void)fclose(fp);
 
@@ -1232,10 +1354,11 @@ ssize_t fd_puts(int fd, const void *buf, size_t count)
 /*
 smtp_write() -- A printf to an fd and append <CR/LF>
 */
-void smtp_write(int fd, char *format, ...)
+ssize_t smtp_write(int fd, char *format, ...)
 {
 	char buf[(BUF_SZ + 1)];
 	va_list ap;
+	ssize_t outbytes = 0;
 
 	va_start(ap, format);
 	if(vsnprintf(buf, (BUF_SZ - 2), format, ap) == -1) {
@@ -1252,7 +1375,9 @@ void smtp_write(int fd, char *format, ...)
 	}
 	(void)strcat(buf, "\r\n");
 
-	(void)fd_puts(fd, buf, strlen(buf));
+	outbytes = fd_puts(fd, buf, strlen(buf));
+	
+	return (outbytes >= 0) ? outbytes : 0;
 }
 
 /*
@@ -1281,6 +1406,11 @@ int ssmtp(char *argv[])
 	struct passwd *pw;
 	int i, sock;
 	uid_t uid;
+	bool_t minus_v_save;
+	int timeout = 0;
+
+	outbytes = 0;
+	ht = &headers;
 
 	uid = getuid();
 	if((pw = getpwuid(uid)) == (struct passwd *)NULL) {
@@ -1289,7 +1419,7 @@ int ssmtp(char *argv[])
 	get_arpadate(arpadate);
 
 	if(read_config() == False) {
-		log_event(LOG_INFO, "%s/ssmtp.conf not found", SSMTPCONFDIR);
+		log_event(LOG_INFO, "%s not found", config_file);
 	}
 
 	if((p = strtok(pw->pw_gecos, ";,"))) {
@@ -1304,7 +1434,6 @@ int ssmtp(char *argv[])
 		uad = append_domain(pw->pw_name);
 	}
 
-	ht = &headers;
 	rt = &rcpt_list;
 
 	header_parse(stdin);
@@ -1335,10 +1464,10 @@ int ssmtp(char *argv[])
 
 	/* If user supplied username and password, then try ELHO */
 	if(auth_user) {
-		smtp_write(sock, "EHLO %s", hostname);
+		outbytes += smtp_write(sock, "EHLO %s", hostname);
 	}
 	else {
-		smtp_write(sock, "HELO %s", hostname);
+		outbytes += smtp_write(sock, "HELO %s", hostname);
 	}
 	(void)alarm((unsigned) MEDWAIT);
 
@@ -1353,8 +1482,8 @@ int ssmtp(char *argv[])
 			auth_pass = strdup("");
 		}
 
-		if(strcasecmp(auth_method, "cram-md5") == 0) {
-			smtp_write(sock, "AUTH CRAM-MD5");
+		if(auth_method && strcasecmp(auth_method, "cram-md5") == 0) {
+			outbytes += smtp_write(sock, "AUTH CRAM-MD5");
 			(void)alarm((unsigned) MEDWAIT);
 
 			if(smtp_read(sock, buf) != 3) {
@@ -1369,7 +1498,20 @@ int ssmtp(char *argv[])
 #endif
 		memset(buf, 0, sizeof(buf));
 		to64frombits(buf, auth_user, strlen(auth_user));
-		smtp_write(sock, "AUTH LOGIN %s", buf);
+		if (use_oldauth) {
+			outbytes += smtp_write(sock, "AUTH LOGIN %s", buf);
+		}
+		else {
+			outbytes += smtp_write(sock, "AUTH LOGIN");
+			(void)alarm((unsigned) MEDWAIT);
+			if(smtp_read(sock, buf) != 3) {
+				die("Server didn't like our AUTH LOGIN (%s)", buf);
+			}
+			/* we assume server asked us for Username */
+			memset(buf, 0, sizeof(buf));
+			to64frombits(buf, auth_user, strlen(auth_user));
+			outbytes += smtp_write(sock, buf);
+		}
 
 		(void)alarm((unsigned) MEDWAIT);
 		if(smtp_read(sock, buf) != 3) {
@@ -1381,7 +1523,12 @@ int ssmtp(char *argv[])
 #ifdef MD5AUTH
 		}
 #endif
-		smtp_write(sock, "%s", buf);
+		/* We do NOT want the password output to STDERR
+		 * even base64 encoded.*/
+		minus_v_save = minus_v;
+		minus_v = False;
+		outbytes += smtp_write(sock, "%s", buf);
+		minus_v = minus_v_save;
 		(void)alarm((unsigned) MEDWAIT);
 
 		if(smtp_okay(sock, buf) == False) {
@@ -1390,7 +1537,7 @@ int ssmtp(char *argv[])
 	}
 
 	/* Send "MAIL FROM:" line */
-	smtp_write(sock, "MAIL FROM:<%s>", uad);
+	outbytes += smtp_write(sock, "MAIL FROM:<%s>", uad);
 
 	(void)alarm((unsigned) MEDWAIT);
 
@@ -1408,7 +1555,7 @@ int ssmtp(char *argv[])
 
 		while(rt->next) {
 			p = rcpt_remap(rt->string);
-			smtp_write(sock, "RCPT TO:<%s>", p);
+			outbytes += smtp_write(sock, "RCPT TO:<%s>", p);
 
 			(void)alarm((unsigned)MEDWAIT);
 
@@ -1425,7 +1572,7 @@ int ssmtp(char *argv[])
 			while(p) {
 				/* RFC822 Address -> "foo@bar" */
 				q = rcpt_remap(addr_parse(p));
-				smtp_write(sock, "RCPT TO:<%s>", q);
+				outbytes += smtp_write(sock, "RCPT TO:<%s>", q);
 
 				(void)alarm((unsigned) MEDWAIT);
 
@@ -1439,7 +1586,7 @@ int ssmtp(char *argv[])
 	}
 
 	/* Send DATA */
-	smtp_write(sock, "DATA");
+	outbytes += smtp_write(sock, "DATA");
 	(void)alarm((unsigned) MEDWAIT);
 
 	if(smtp_read(sock, buf) != 3) {
@@ -1447,59 +1594,77 @@ int ssmtp(char *argv[])
 		die("%s", buf);
 	}
 
-	smtp_write(sock,
+	outbytes += smtp_write(sock,
 		"Received: by %s (sSMTP sendmail emulation); %s", hostname, arpadate);
 
 	if(have_from == False) {
-		smtp_write(sock, "From: %s", from);
+		outbytes += smtp_write(sock, "From: %s", from);
 	}
 
 	if(have_date == False) {
-		smtp_write(sock, "Date: %s", arpadate);
+		outbytes += smtp_write(sock, "Date: %s", arpadate);
 	}
 
 #ifdef HASTO_OPTION
 	if(have_to == False) {
-		smtp_write(sock, "To: postmaster");
+		outbytes += smtp_write(sock, "To: postmaster");
 	}
 #endif
 
 	ht = &headers;
 	while(ht->next) {
-		smtp_write(sock, "%s", ht->string);
+		outbytes += smtp_write(sock, "%s", ht->string);
 		ht = ht->next;
 	}
 
 	(void)alarm((unsigned) MEDWAIT);
 
 	/* End of headers, start body */
-	smtp_write(sock, "");
+	outbytes += smtp_write(sock, "");
 
-	while(fgets(buf, sizeof(buf), stdin)) {
+	/*prevent blocking on pipes, we really shouldnt be using
+	  stdio functions like fgets in the first place */
+	fcntl(STDIN_FILENO,F_SETFL,O_NONBLOCK);
+
+	/* don't hang forever when reading from stdin */
+	while(!feof(stdin) && timeout < MEDWAIT) {
+		if (!fgets(buf, sizeof(buf), stdin)) {
+			/* if nothing was received, then no transmission
+			 * over smtp should be done */
+			sleep(1);
+			timeout++;
+			continue;
+		}
 		/* Trim off \n, double leading .'s */
 		standardise(buf);
 
-		smtp_write(sock, "%s", buf);
+		outbytes += smtp_write(sock, "%s", buf);
 
 		(void)alarm((unsigned) MEDWAIT);
 	}
 	/* End of body */
 
-	smtp_write(sock, ".");
+	if (timeout >= MEDWAIT) {
+		log_event(LOG_ERR, "killed: timeout on stdin while reading body -- message saved to dead.letter.");
+		die("Timeout on stdin while reading body");
+	}
+
+	outbytes += smtp_write(sock, ".");
 	(void)alarm((unsigned) MAXWAIT);
 
 	if(smtp_okay(sock, buf) == 0) {
 		die("%s", buf);
 	}
 
-	/* Close conection */
+	/* Close connection */
 	(void)signal(SIGALRM, SIG_IGN);
 
-	smtp_write(sock, "QUIT");
+	outbytes += smtp_write(sock, "QUIT");
 	(void)smtp_okay(sock, buf);
 	(void)close(sock);
 
-	log_event(LOG_INFO, "Sent mail for %s (%s)", from_strip(uad), buf);
+	log_event(LOG_INFO, "Sent mail for %s (%s) uid=%d username=%s outbytes=%d", 
+		from_strip(uad), buf, uid, pw->pw_name, outbytes);
 
 	return(0);
 }
@@ -1640,6 +1805,19 @@ char **parse_options(int argc, char *argv[])
 
 			/* Configfile name */
 			case 'C':
+				if((!argv[i][(j + 1)]) && argv[(i + 1)]) {
+					config_file = strdup(argv[(i + 1)]);
+					if(config_file == (char *)NULL) {
+						die("parse_options() -- strdup() failed");
+					}
+					add++;
+				}
+				else {
+					config_file = strdup(argv[i]+j+1);
+					if(config_file == (char *)NULL) {
+						die("parse_options() -- strdup() failed");
+					}
+				}
 				goto exit;
 
 			/* Debug */
@@ -1867,7 +2045,10 @@ int main(int argc, char **argv)
 	/* Set the globals */
 	prog = basename(argv[0]);
 
-	if(gethostname(hostname, MAXHOSTNAMELEN) == -1) {
+	hostname = xgethostname();
+
+	if(!hostname) {
+		perror("xgethostname");
 		die("Cannot get the name of this machine");
 	}
 	new_argv = parse_options(argc, argv);
