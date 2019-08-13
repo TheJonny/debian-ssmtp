@@ -1,3 +1,10 @@
+ssmtp (2.64-8.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Add patch to fix TLS 1.3 handshake (Closes: #932605, #933236)
+
+ -- Ricardo Mones <mones@debian.org>  Tue, 13 Aug 2019 09:34:45 +0200
+
 ssmtp (2.64-8) unstable; urgency=medium
 
   * Fix "Partial loss of message body, sending message to wrong recipicients".
