@@ -1,0 +1,13 @@
+#!/bin/sh -e
+
+if [ -s /etc/ssmtp.conf ];
+then
+	echo "Configuration files existing in /etc; moving them to /etc/ssmtp."
+	if [ ! -d /etc/ssmtp ]; then
+		mkdir /etc/ssmtp
+	fi
+	mv /etc/ssmtp.conf /etc/ssmtp/ssmtp.conf
+	if [ -s /etc/revaliases ]; then
+		mv /etc/revaliases /etc/ssmtp/revaliases
+	fi
+fi

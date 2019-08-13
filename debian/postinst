@@ -1,0 +1,45 @@
+#!/bin/sh -e
+
+#
+# Figure out the system's mailname
+#
+
+syshostname=`hostname --fqdn`
+if [ ! -f /etc/mailname ]; then
+  echo 'Please enter the "mail name" of your system.  This is the hostname'
+  echo 'portion of the address to be shown on outgoing news and mail messages.'
+  echo "The default is $syshostname, your system's host name."
+  echo
+  echo -n "Mail name [$syshostname]: "
+  read mailname
+  echo
+  if [ "$mailname" ]; then
+    echo $mailname >/etc/mailname
+  else
+    echo $syshostname >/etc/mailname
+  fi
+fi
+
+#
+# Generate configuration file if necessary
+#
+
+if [ ! -s /etc/ssmtp/ssmtp.conf ];
+then
+	cat >>/etc/ssmtp/ssmtp.conf <<EOF
+#
+# /etc/ssmtp.conf -- a config file for sSMTP sendmail.
+#
+# The person who gets all mail for userids < 10
+root=postmaster
+# The place where the mail goes. The actual machine name is required
+# no MX records are consulted. Commonly mailhosts are named mail.domain.com
+# The example will fit if you are in domain.com and you mailhub is so named.
+mailhub=mail
+# Where will the mail seem to come from?
+#rewriteDomain=`cat /etc/mailname`
+# The full hostname
+hostname=`hostname --fqdn`
+EOF
+	echo "Please check the configuration file in /etc/ssmtp/ssmtp.conf for correctness."
+fi

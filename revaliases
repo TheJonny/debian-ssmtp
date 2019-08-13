@@ -1,0 +1,5 @@
+# sSMTP reverse aliases
+# 
+# Format:	local_accout:	outgoing_address
+#
+# Example:	root:	your_login@your.domain

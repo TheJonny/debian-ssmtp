@@ -1,0 +1,171 @@
+ssmtp (2.27-2) frozen unstable; urgency=low
+
+  * Now refers to the correct configuration file in the postinst script
+    (fixes #21848)
+
+ -- Hugo Haas <hugo@debian.org>  Wed, 29 Apr 1998 21:42:59 +0100
+
+ssmtp (2.27-1) frozen unstable; urgency=low
+
+  * 'Root' option now works (fixes #21335)
+  * Fixed a problem due to null real names
+
+ -- Hugo Haas <hugo@debian.org>  Sat, 18 Apr 1998 12:41:02 +0100
+
+ssmtp (2.26-4) frozen unstable; urgency=low
+
+  * Updated to standards 2.4.1.0
+  * Modified /etc/mailname usage in postinst script
+
+ -- Hugo Haas <hugo@debian.org>  Fri, 17 Apr 1998 12:26:33 +0100
+
+ssmtp (2.26-3) frozen unstable; urgency=low
+
+  * Removed debugging information (Oops!)
+
+ -- Hugo Haas <hugo@debian.org>  Thu,  9 Apr 1998 15:09:01 +0100
+
+ssmtp (2.26-2) frozen unstable; urgency=low
+
+  * Ignored DSN options. Now works with mutt. :-)
+
+ -- Hugo Haas <hugo@debian.org>  Tue,  7 Apr 1998 14:14:40 +0100
+
+ssmtp (2.26-1) frozen unstable; urgency=low
+
+  * New upstream version: removed "horrible trick" used to get RFC822 date
+  * Source and installation clean-up
+
+ -- Hugo Haas <hugo@debian.org>  Sat,  4 Apr 1998 01:08:52 +0100
+
+ssmtp (2.25-5) frozen unstable; urgency=low
+
+  * Removed quotes in the From: line
+
+ -- Hugo Haas <hugo@debian.org>  Fri,  3 Apr 1998 21:31:29 +0100
+
+ssmtp (2.25-4) unstable; urgency=low
+
+  * Corrected a typo
+
+ -- Hugo Haas <hugo@debian.org>  Thu, 19 Mar 1998 08:49:13 +0000
+
+ssmtp (2.25-3) unstable; urgency=low
+
+  * Moved configuration files to /etc/ssmtp
+
+ -- Hugo Haas <hugo@debian.org>  Wed, 18 Mar 1998 18:38:04 +0000
+
+ssmtp (2.25-2) unstable; urgency=low
+
+  * Changed manpage
+
+ -- Hugo Haas <hugo@debian.org>  Sat, 14 Mar 1998 02:43:35 +0000
+
+ssmtp (2.25-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Hugo Haas <hugo@debian.org>  Sat, 14 Mar 1998 02:03:02 +0000
+
+ssmtp (2.24-4) unstable; urgency=low
+
+  * Updated to standards 2.4.0.0
+  * Removed debhelper's dh_du
+
+ -- Hugo Haas <hugo@debian.org>  Sun, 22 Feb 1998 11:13:43 +0000
+
+ssmtp (2.24-3) unstable; urgency=low
+
+  * README file modified: incompatibility with Pine explained
+
+ -- Hugo Haas <hugo@debian.org>  Thu, 29 Jan 1998 18:23:47 +0000
+
+ssmtp (2.24-2) unstable; urgency=low
+
+  * Modified the manpage
+  * Added a link to sendmail manpage
+
+ -- Hugo Haas <hugo@debian.org>  Wed, 28 Jan 1998 20:54:16 +0000
+
+ssmtp (2.24-1) unstable; urgency=low
+
+  * New upstream version: configuration parsing changed (#17470)
+  * Declared configuration files as conffiles
+  * Changed the Makefile
+  * Changed the logging verbosity
+
+ -- Hugo Haas <hugo@debian.org>  Mon, 26 Jan 1998 22:40:49 +0000
+
+ssmtp (2.23-1) unstable; urgency=low
+
+  * New upstream version (#17240)
+  * Enabled RewriteDomain option
+  * Enabled Syslog option
+
+ -- Hugo Haas <hugo@debian.org>  Mon, 19 Jan 1998 15:18:53 +0000
+
+ssmtp (2.22-2) unstable; urgency=low
+
+  * Add /usr/lib/sendmail symlink (#17178)
+
+ -- Hugo Haas <hugo@debian.org>  Fri, 16 Jan 1998 14:27:37 +0000
+
+ssmtp (2.22-1) unstable; urgency=high
+
+  * New upstream version (#15690)
+  * Correct typo in /etc/ssmtp.conf (#15690)
+
+ -- Hugo Haas <hugo@debian.org>  Sun, 21 Dec 1997 17:49:05 +0100
+
+ssmtp (2.21-1) unstable; urgency=low
+
+  * New upstream version (RCPT bug fixed)
+
+ -- Hugo Haas <hugo@debian.org>  Tue, 11 Nov 1997 15:14:19 +0000
+
+ssmtp (2.2-1) unstable; urgency=low
+
+  * New maintainer
+  * New upstream version
+
+ -- Hugo Haas <hugo@debian.org>  Sun, 26 Oct 1997 12:08:24 +0100
+
+ssmtp (2.1) unstable; urgency=low
+
+  * Make it a native package. I am the upstream maintainer also now.
+  * Change Copyright to GPL
+  * Remove old documentation
+
+ -- Christoph Lameter <clameter@debian.org>  Mon, 29 Sep 1997 17:42:50 -0700
+
+ssmtp (2.0-4) unstable; urgency=low
+
+  * Fix manpage
+
+ -- Christoph Lameter <clameter@debian.org>  Mon, 29 Sep 1997 08:04:58 -0700
+
+ssmtp (2.0-3) unstable; urgency=low
+
+  * Implement the sendmail -t option (limited!)
+  * Limit header size to 4K (easier programming, spam protection)
+
+ -- Christoph Lameter <clameter@debian.org>  Sun, 28 Sep 1997 20:50:35 -0700
+
+ssmtp (2.0-2) unstable; urgency=low
+
+  * Changes to documentation
+  * Move config file to /etc/ssmtp.conf
+
+ -- Christoph Lameter <clameter@debian.org>  Sun, 28 Sep 1997 14:53:36 -0700
+
+ssmtp (2.0-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Christoph Lameter <clameter@debian.org>  Thu, 22 May 1997 22:18:24 -0700
+
+Local variables:
+mode: debian-changelog
+add-log-mailing-address: "hugo@debian.org"
+End:

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$1" = "purge" ] ; then
+	rmdir /etc/ssmtp > /dev/null 2>&1
+	if [ $? = 1 ]; then
+		echo "/etc/ssmtp not empty -- not removed"
+	fi
+fi
