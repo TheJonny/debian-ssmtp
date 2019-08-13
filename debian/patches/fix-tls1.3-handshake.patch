@@ -1,0 +1,25 @@
+commit 95ca137ccf34e2a73bb1df9d8d858c9f079b08fc
+Author: Ricardo Mones <mones@debian.org>
+Date:   Tue Aug 13 09:28:03 2019 +0200
+
+    patched with fix-tls1.3-handshake.patch
+
+diff --git a/ssmtp.c b/ssmtp.c
+index 7ab79ab..6b2b9d0 100644
+--- a/ssmtp.c
++++ b/ssmtp.c
+@@ -1291,8 +1291,12 @@ fd_getc() -- Read a character from an fd
+ ssize_t fd_getc(int fd, void *c)
+ {
+ #ifdef HAVE_SSL
+-	if(use_tls == True) { 
+-		return(SSL_read(ssl, c, 1));
++	if(use_tls == True) {
++		int attempt = 3;
++		int ret = 0;
++		while (attempt-- > 0 && ret == 0)
++			ret = SSL_read(ssl, c, 1);
++		return ret;
+ 	}
+ #endif
+ 	return(read(fd, c, 1));
