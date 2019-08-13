@@ -1,4 +1,4 @@
-.TH SSMTP 8 "Last change: 23 October 1998"
+.TH SSMTP 8 "Last change: 5 February 2000"
 .SH NAME
 ssmtp, sendmail \- send a message using smtp
 .SH SYNOPSIS
@@ -17,12 +17,12 @@ mail via the standard or /usr/bin/mail user agents.
 .PP
 It accepts a mail stream on standard input with recipients specified on the
 command line and synchronously forwards the message to the mail transfer
-agent of its mailhub for the mailhub MTA to process. Failed messages are
+agent of a mailhub for the mailhub MTA to process. Failed messages are
 placed in dead.letter in the sender's home directory.
 .PP
-A config file allows one to specify the person to receive mail for root,
-daemon, etc. One can also specify the mailhub's name and optionaly the domain
-to be used in From: lines.
+Config files allow one to specify the address to receive mail from
+root, daemon, etc.; a default mailhub; a default domain to be used in
+From: lines; and per-user From: addresses and mailhub names.
 .sp
 .PP
 It does not attempt to provide all the functionality of sendmail: it is
@@ -44,6 +44,26 @@ is for the program to exit with an informative message. A sort of fatal
 non-error.
 
 .TP
+.B \-4
+Forces ssmtp to use IPv4 addresses only.
+
+.TP
+.B \-6
+Forces ssmtp to use IPv6 addresses only.
+
+.TP
+\fB\-au\fP\fIusername\fP
+Specifies username for SMTP authentication.
+
+.TP
+\fB\-ap\fP\fIpassword\fP
+Specifies password for SMTP authentication.
+
+.TP
+\fB\-am\fP\fImechanism\fP
+Specifies mechanism for SMTP authentication. (Only LOGIN and CRAM-MD5)
+
+.TP
 .B \-ba
 (unsupported) ARPANET mode. All input lines must end with a LINEFEED, and
 all messages will be generated with a CR-LF at the end. Also, the ``From:''
@@ -55,7 +75,7 @@ and ``Sender:'' fields are examined for the name of the sender.
 
 .TP
 .B \-bi
-(ignored) Initialize the alias database.
+(ignored) Initialise the alias database.
 
 .TP
 .B \-bm
@@ -234,33 +254,35 @@ Go into verbose mode.
 Say version and quit.
 
 .SH REVERSE ALIASES
-A reverse alias is used for out-going mails. If the From: line has not been
-specified and if an entry exists for the user sending the mail, the From:
-field is set to the value indicated in the revaliases file. Example:
+A reverse alias gives the From: address placed on a user's outgoing messages
+and (optionally) the mailhub these messages will be sent through. Example:
 .sp
 .RS +.3i
 .ta 1.0i
 .nf
-root: user@your.domain
+root:jdoe@isp.com:mail.isp.com
 .fi
 .RE
 .sp
-Every mail sent by root will have a From: user@your.domain line in the header.
+Messages root sends will be identified as from jdoe@isp.com and sent
+through mail.isp.com.
 
 .SH FILES
  /etc/ssmtp/ssmtp.conf - configuration file
+.br
  /etc/ssmtp/revaliases - reverse aliases file
 
 .SH SEE ALSO
-RFC 821, RFC 822.
-
-.SH DIAGNOSTICS
+RFC821, RFC822.
 
 .SH AUTHORS
+Matt Ryan (mryan@debian.org)
 Hugo Haas (hugo@debian.org)
 Christoph Lameter (clameter@debian.org)
 Dave Collier-Brown (davecb@hobbes.ss.org)
 
 .SH BUGS
 sSMTP does not support exception lists to the -t option (never seen it
-used). Header size is limited to 4K and a max of 100 addresses.
+used).
+
+sSMTP will fail if the mailhub is unreachable.

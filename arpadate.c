@@ -2,6 +2,8 @@
  *  arpadate.c - get_arpadate() is a function returning the date in the
  *               ARPANET format (see RFC822 and RFC1123)
  *  Copyright (C) 1998 Hugo Haas
+ *  
+ *  Inspired by smail source code by Ronald S. Karr and Landon Curt Noll
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +29,8 @@
 void 
 get_arpadate (char *d_string)
 {
+  struct tm *date;
+#ifdef USE_OLD_ARPADATE
   static char *week_day[] =
   {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
   static char *month[] =
@@ -35,7 +39,6 @@ get_arpadate (char *d_string)
   static char timezone[3];
 
   time_t current;
-  struct tm *date;
   int offset, gmt_yday, gmt_hour, gmt_min;
 
   /* Get current time */
@@ -58,7 +61,7 @@ get_arpadate (char *d_string)
       if (date->tm_yday == (gmt_yday + 1))
 	offset += 1440;
       else if (date->tm_yday == (gmt_yday - 1))
-	offset += 1440;
+	offset -= 1440;
       else
 	offset += (date->tm_yday > gmt_yday) ? -1440 : 1440;
     }
@@ -72,5 +75,15 @@ get_arpadate (char *d_string)
 	   week_day[date->tm_wday],
 	   date->tm_mday, month[date->tm_mon], date->tm_year + 1900,
 	   date->tm_hour, date->tm_min, date->tm_sec, timezone);
+#else
+	time_t now;
 
+	/* RFC822 format string borrowed from GNU shellutils date.c */
+	const char *format = "%a, %_d %b %Y %H:%M:%S %z";
+
+	now = time(NULL);
+
+	date = localtime((const time_t *)&now);
+	(void)strftime(d_string, ARPADATE_LENGTH, format, date);
+#endif
 }
