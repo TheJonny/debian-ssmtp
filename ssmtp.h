@@ -1,7 +1,5 @@
 /*
 
- $Id: ssmtp.h,v 2.7 2002/09/27 13:18:13 matt Exp $
-
  See COPYRIGHT for the license
 
 */

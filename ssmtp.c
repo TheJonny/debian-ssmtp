@@ -10,7 +10,7 @@
  See COPYRIGHT for the license
 
 */
-#define VERSION "2.62"
+#define VERSION "2.63"
 #define _GNU_SOURCE
 
 #include <sys/socket.h>
@@ -347,28 +347,26 @@ char *append_domain(char *str)
 /*
 standardise() -- Trim off '\n's and double leading dots
 */
-void standardise(char *str)
+bool_t standardise(char *str, bool_t *linestart)
 {
 	size_t sl;
 	char *p;
+	bool_t leadingdot = False;
+
+	/* Any line beginning with a dot has an additional dot inserted;
+	not just a line consisting solely of a dot. Thus we have to move
+	the buffer start up one */
+
+	if(*linestart && *str == '.') {
+		leadingdot = True;
+	}
+	*linestart = False;
 
 	if((p = strchr(str, '\n'))) {
 		*p = (char)NULL;
+		*linestart = True;
 	}
-
-	/* Any line beginning with a dot has an additional dot inserted;
-	not just a line consisting solely of a dot. Thus we have to slide
-	the buffer down one */
-	sl = strlen(str);
-
-	if(*str == '.') {
-		if((sl + 2) > BUF_SZ) {
-			die("standardise() -- Buffer overflow");
-		}
-		(void)memmove((str + 1), str, (sl + 1));	/* Copy trailing \0 */
-
-		*str = '.';
-	}
+	return(leadingdot);
 }
 
 /*
@@ -482,6 +480,11 @@ char *from_format(char *str, bool_t override_from)
 	else {
 		if(gecos) {
 			if(snprintf(buf, BUF_SZ, "\"%s\" <%s>", gecos, str) == -1) {
+				die("from_format() -- snprintf() failed");
+			}
+		}
+		else {
+			if(snprintf(buf, BUF_SZ, "%s", str) == -1) {
 				die("from_format() -- snprintf() failed");
 			}
 		}
@@ -883,7 +886,7 @@ bool_t read_config()
 		p=firsttok(&begin, "= \t\n");
 		if(p){
 			rightside=begin;
-			q = firsttok(&begin, "= \t\n:");
+			q = firsttok(&begin, "= \t\n");
 		}
 		if(p && q) {
 			if(strcasecmp(p, "Root") == 0) {
@@ -896,13 +899,13 @@ bool_t read_config()
 				}
 			}
 			else if(strcasecmp(p, "MailHub") == 0) {
-				if((mailhost = strdup(q)) == (char *)NULL) {
-					die("parse_config() -- strdup() failed");
+				if((r = strchr(q, ':')) != NULL) {
+					*r++ = '\0';
+					port = atoi(r);
 				}
 
-				if((r = firsttok(&begin, "= \t\n:")) != NULL) {
-					port = atoi(r);
-					free(r);
+				if((mailhost = strdup(q)) == (char *)NULL) {
+					die("parse_config() -- strdup() failed");
 				}
 
 				if(log_level > 0) {
@@ -1108,7 +1111,7 @@ int smtp_open(char *host, int port)
 #else
 	struct sockaddr_in name;
 	struct hostent *hent;
-	int s, namelen;
+	int i, s, namelen;
 #endif
 
 #ifdef HAVE_SSL
@@ -1197,15 +1200,21 @@ int smtp_open(char *host, int port)
 		return(-1);
 	}
 
+	for (i = 0; ; ++i) {
+		if (!hent->h_addr_list[i]) {
+			log_event(LOG_ERR, "Unable to connect to %s:%d", host, port);
+			return(-1);
+		}
+
 	/* This SHOULD already be in Network Byte Order from gethostbyname() */
-	name.sin_addr.s_addr = ((struct in_addr *)(hent->h_addr))->s_addr;
+	name.sin_addr.s_addr = ((struct in_addr *)(hent->h_addr_list[i]))->s_addr;
 	name.sin_family = hent->h_addrtype;
 	name.sin_port = htons(port);
 
 	namelen = sizeof(struct sockaddr_in);
-	if(connect(s, (struct sockaddr *)&name, namelen) < 0) {
-		log_event(LOG_ERR, "Unable to connect to %s:%d", host, port);
-		return(-1);
+	if(connect(s, (struct sockaddr *)&name, namelen) < 0)
+		continue;
+	break;
 	}
 #endif
 
@@ -1356,12 +1365,12 @@ smtp_write() -- A printf to an fd and append <CR/LF>
 */
 ssize_t smtp_write(int fd, char *format, ...)
 {
-	char buf[(BUF_SZ + 1)];
+	char buf[(BUF_SZ + 2)];
 	va_list ap;
 	ssize_t outbytes = 0;
 
 	va_start(ap, format);
-	if(vsnprintf(buf, (BUF_SZ - 2), format, ap) == -1) {
+	if(vsnprintf(buf, (BUF_SZ - 1), format, ap) == -1) {
 		die("smtp_write() -- vsnprintf() failed");
 	}
 	va_end(ap);
@@ -1399,16 +1408,18 @@ ssmtp() -- send the message (exactly one) from stdin to the mailhub SMTP port
 */
 int ssmtp(char *argv[])
 {
-	char buf[(BUF_SZ + 1)], *p, *q;
+	char b[(BUF_SZ + 2)], *buf = b+1, *p, *q;
 #ifdef MD5AUTH
 	char challenge[(BUF_SZ + 1)];
 #endif
 	struct passwd *pw;
 	int i, sock;
 	uid_t uid;
-	bool_t minus_v_save;
+	bool_t minus_v_save, leadingdot, linestart = True;
 	int timeout = 0;
+	int bufsize = sizeof(b)-1;
 
+	b[0] = '.';
 	outbytes = 0;
 	ht = &headers;
 
@@ -1491,12 +1502,12 @@ int ssmtp(char *argv[])
 			}
 			strncpy(challenge, strchr(buf,' ') + 1, sizeof(challenge));
 
-			memset(buf, 0, sizeof(buf));
+			memset(buf, 0, bufsize);
 			crammd5(challenge, auth_user, auth_pass, buf);
 		}
 		else {
 #endif
-		memset(buf, 0, sizeof(buf));
+		memset(buf, 0, bufsize);
 		to64frombits(buf, auth_user, strlen(auth_user));
 		if (use_oldauth) {
 			outbytes += smtp_write(sock, "AUTH LOGIN %s", buf);
@@ -1508,7 +1519,7 @@ int ssmtp(char *argv[])
 				die("Server didn't like our AUTH LOGIN (%s)", buf);
 			}
 			/* we assume server asked us for Username */
-			memset(buf, 0, sizeof(buf));
+			memset(buf, 0, bufsize);
 			to64frombits(buf, auth_user, strlen(auth_user));
 			outbytes += smtp_write(sock, buf);
 		}
@@ -1517,7 +1528,7 @@ int ssmtp(char *argv[])
 		if(smtp_read(sock, buf) != 3) {
 			die("Server didn't accept AUTH LOGIN (%s)", buf);
 		}
-		memset(buf, 0, sizeof(buf));
+		memset(buf, 0, bufsize);
 
 		to64frombits(buf, auth_pass, strlen(auth_pass));
 #ifdef MD5AUTH
@@ -1626,28 +1637,40 @@ int ssmtp(char *argv[])
 	  stdio functions like fgets in the first place */
 	fcntl(STDIN_FILENO,F_SETFL,O_NONBLOCK);
 
-	/* don't hang forever when reading from stdin */
-	while(!feof(stdin) && timeout < MEDWAIT) {
-		if (!fgets(buf, sizeof(buf), stdin)) {
+	while(!feof(stdin)) {
+		if (!fgets(buf, bufsize, stdin)) {
 			/* if nothing was received, then no transmission
 			 * over smtp should be done */
 			sleep(1);
-			timeout++;
+			/* don't hang forever when reading from stdin */
+			if (++timeout >= MEDWAIT) {
+				log_event(LOG_ERR, "killed: timeout on stdin while reading body -- message saved to dead.letter.");
+				die("Timeout on stdin while reading body");
+			}
 			continue;
 		}
 		/* Trim off \n, double leading .'s */
-		standardise(buf);
+		leadingdot = standardise(buf, &linestart);
 
-		outbytes += smtp_write(sock, "%s", buf);
-
+		if (linestart || feof(stdin)) {
+			linestart = True;
+			outbytes += smtp_write(sock, "%s", leadingdot ? b : buf);
+		} else {
+			if (log_level > 0) {
+				log_event(LOG_INFO, "Sent a very long line in chunks");
+			}
+			if (leadingdot) {
+				outbytes += fd_puts(sock, b, sizeof(b));
+			} else {
+				outbytes += fd_puts(sock, buf, bufsize);
+			}
+		}
 		(void)alarm((unsigned) MEDWAIT);
 	}
-	/* End of body */
-
-	if (timeout >= MEDWAIT) {
-		log_event(LOG_ERR, "killed: timeout on stdin while reading body -- message saved to dead.letter.");
-		die("Timeout on stdin while reading body");
+	if(!linestart) {
+		smtp_write(sock, "");
 	}
+	/* End of body */
 
 	outbytes += smtp_write(sock, ".");
 	(void)alarm((unsigned) MAXWAIT);
