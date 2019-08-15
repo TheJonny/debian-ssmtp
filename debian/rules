@@ -55,8 +55,8 @@ binary-arch:	checkroot configure build
 	-cd debian/tmp/usr/sbin && ln -sf ssmtp mailq
 	install -m 644 debian/mailq.8 debian/tmp/usr/share/man/man8
 
-	gzip -9v debian/tmp/usr/share/man/man5/*
-	gzip -9v debian/tmp/usr/share/man/man8/*
+	gzip -9nv debian/tmp/usr/share/man/man5/*
+	gzip -9nv debian/tmp/usr/share/man/man8/*
 	-cd debian/tmp/usr/share/man/man8 && ln -sf ssmtp.8.gz sendmail.8.gz
 
 	install -d -m 755 -o root -g root debian/tmp/usr/share/doc/ssmtp
@@ -67,7 +67,7 @@ binary-arch:	checkroot configure build
 	install -m 644 debian/changelog debian/tmp/usr/share/doc/ssmtp/changelog.Debian
 	install -m 644 CHANGELOG_OLD debian/tmp/usr/share/doc/ssmtp/changelog
 	install -m 644 debian/AddHeader debian/tmp/usr/share/doc/ssmtp/AddHeader
-	gzip -9 debian/tmp/usr/share/doc/ssmtp/{changelog.Debian,changelog}
+	gzip -9n debian/tmp/usr/share/doc/ssmtp/{changelog.Debian,changelog}
 
 	install -d -m 755 debian/tmp/etc/logcheck/ignore.d.server
 	install -m 640 debian/logcheck.server \
