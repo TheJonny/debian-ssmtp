@@ -38,13 +38,13 @@ binary-arch:	checkroot configure build
 	install -m 755 debian/config debian/tmp/DEBIAN
 
 	install -d -m 755 debian/tmp/usr/sbin
-	install -s -m 755 ssmtp debian/tmp/usr/sbin/ssmtp
+	install -s -g mail -m 2755 ssmtp debian/tmp/usr/sbin/ssmtp
 	install -d -m 755 debian/tmp/usr/share/man/man8
 	install -m 644 ssmtp.8 debian/tmp/usr/share/man/man8/ssmtp.8
 	install -d -m 755 debian/tmp/usr/share/man/man5
 	install -m 644 ssmtp.conf.5 debian/tmp/usr/share/man/man5/ssmtp.conf.5
-	install -d -m 755 debian/tmp/etc/ssmtp
-	install -m 644 revaliases debian/tmp/etc/ssmtp/revaliases
+	install -d -g mail -m 750 debian/tmp/etc/ssmtp
+	install -g mail -m 640 revaliases debian/tmp/etc/ssmtp/revaliases
 
 	-cd debian/tmp/usr/sbin && ln -sf ssmtp sendmail
 	install -d -m 755 -o root -g root debian/tmp/usr/lib
