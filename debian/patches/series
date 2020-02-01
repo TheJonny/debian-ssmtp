@@ -6,3 +6,4 @@ debian-changes-2.64-1
 05-LDFLAGS.patch
 ssmtp-bug584162-fix.patch
 fix-tls1.3-handshake.patch
+keep-from-header-intact.patch
