@@ -6,10 +6,12 @@
 
 #export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/buildflags.mk
 
 SHELL=/bin/bash
-CC=gcc
+export CC=$(DEB_HOST_GNU_TYPE)-gcc
+INSTALL=install '--strip-program=$(DEB_HOST_GNU_TYPE)-strip'
 CFLAGS+=-O2 -g -Wall
 
 do_cfg:
@@ -27,54 +29,54 @@ binary-arch:	checkroot configure build
 
 	dpkg-shlibdeps ssmtp
 
-	install -d -m 755 -o root -g root debian/tmp/DEBIAN
+	$(INSTALL) -d -m 755 -o root -g root debian/tmp/DEBIAN
 	dpkg-gencontrol -isp
 	po2debconf --podir=debian/po debian/templates > debian/tmp/DEBIAN/templates
 	chmod 644 debian/tmp/DEBIAN/templates
-	install -m 644 debian/conffiles debian/tmp/DEBIAN
-	install -m 755 debian/preinst debian/tmp/DEBIAN
-	install -m 755 debian/postinst debian/tmp/DEBIAN
-	install -m 755 debian/postrm debian/tmp/DEBIAN
-	install -m 755 debian/config debian/tmp/DEBIAN
+	$(INSTALL) -m 644 debian/conffiles debian/tmp/DEBIAN
+	$(INSTALL) -m 755 debian/preinst debian/tmp/DEBIAN
+	$(INSTALL) -m 755 debian/postinst debian/tmp/DEBIAN
+	$(INSTALL) -m 755 debian/postrm debian/tmp/DEBIAN
+	$(INSTALL) -m 755 debian/config debian/tmp/DEBIAN
 
-	install -d -m 755 debian/tmp/usr/sbin
-	install -s -g mail -m 2755 ssmtp debian/tmp/usr/sbin/ssmtp
-	install -d -m 755 debian/tmp/usr/share/man/man8
-	install -m 644 ssmtp.8 debian/tmp/usr/share/man/man8/ssmtp.8
-	install -d -m 755 debian/tmp/usr/share/man/man5
-	install -m 644 ssmtp.conf.5 debian/tmp/usr/share/man/man5/ssmtp.conf.5
-	install -d -g mail -m 750 debian/tmp/etc/ssmtp
-	install -g mail -m 640 revaliases debian/tmp/etc/ssmtp/revaliases
+	$(INSTALL) -d -m 755 debian/tmp/usr/sbin
+	$(INSTALL) -s -g mail -m 2755 ssmtp debian/tmp/usr/sbin/ssmtp
+	$(INSTALL) -d -m 755 debian/tmp/usr/share/man/man8
+	$(INSTALL) -m 644 ssmtp.8 debian/tmp/usr/share/man/man8/ssmtp.8
+	$(INSTALL) -d -m 755 debian/tmp/usr/share/man/man5
+	$(INSTALL) -m 644 ssmtp.conf.5 debian/tmp/usr/share/man/man5/ssmtp.conf.5
+	$(INSTALL) -d -g mail -m 750 debian/tmp/etc/ssmtp
+	$(INSTALL) -g mail -m 640 revaliases debian/tmp/etc/ssmtp/revaliases
 
 	-cd debian/tmp/usr/sbin && ln -sf ssmtp sendmail
-	install -d -m 755 -o root -g root debian/tmp/usr/lib
+	$(INSTALL) -d -m 755 -o root -g root debian/tmp/usr/lib
 	-cd debian/tmp/usr/lib && ln -sf ../sbin/sendmail .
 
 	-cd debian/tmp/usr/sbin && ln -sf ssmtp newaliases
-	install -m 644 debian/newaliases.8 debian/tmp/usr/share/man/man8
+	$(INSTALL) -m 644 debian/newaliases.8 debian/tmp/usr/share/man/man8
 	-cd debian/tmp/usr/sbin && ln -sf ssmtp mailq
-	install -m 644 debian/mailq.8 debian/tmp/usr/share/man/man8
+	$(INSTALL) -m 644 debian/mailq.8 debian/tmp/usr/share/man/man8
 
 	gzip -9nv debian/tmp/usr/share/man/man5/*
 	gzip -9nv debian/tmp/usr/share/man/man8/*
 	-cd debian/tmp/usr/share/man/man8 && ln -sf ssmtp.8.gz sendmail.8.gz
 
-	install -d -m 755 -o root -g root debian/tmp/usr/share/doc/ssmtp
-	install -m 644 TLS debian/tmp/usr/share/doc/ssmtp
-	install -m 644 README debian/tmp/usr/share/doc/ssmtp
-	install -m 644 debian/README.debian debian/tmp/usr/share/doc/ssmtp/README.Debian
-	install -m 644 debian/copyright debian/tmp/usr/share/doc/ssmtp
-	install -m 644 debian/changelog debian/tmp/usr/share/doc/ssmtp/changelog.Debian
-	install -m 644 CHANGELOG_OLD debian/tmp/usr/share/doc/ssmtp/changelog
-	install -m 644 debian/AddHeader debian/tmp/usr/share/doc/ssmtp/AddHeader
+	$(INSTALL) -d -m 755 -o root -g root debian/tmp/usr/share/doc/ssmtp
+	$(INSTALL) -m 644 TLS debian/tmp/usr/share/doc/ssmtp
+	$(INSTALL) -m 644 README debian/tmp/usr/share/doc/ssmtp
+	$(INSTALL) -m 644 debian/README.debian debian/tmp/usr/share/doc/ssmtp/README.Debian
+	$(INSTALL) -m 644 debian/copyright debian/tmp/usr/share/doc/ssmtp
+	$(INSTALL) -m 644 debian/changelog debian/tmp/usr/share/doc/ssmtp/changelog.Debian
+	$(INSTALL) -m 644 CHANGELOG_OLD debian/tmp/usr/share/doc/ssmtp/changelog
+	$(INSTALL) -m 644 debian/AddHeader debian/tmp/usr/share/doc/ssmtp/AddHeader
 	gzip -9n debian/tmp/usr/share/doc/ssmtp/{changelog.Debian,changelog}
 
-	install -d -m 755 debian/tmp/etc/logcheck/ignore.d.server
-	install -m 640 debian/logcheck.server \
+	$(INSTALL) -d -m 755 debian/tmp/etc/logcheck/ignore.d.server
+	$(INSTALL) -m 640 debian/logcheck.server \
 		debian/tmp/etc/logcheck/ignore.d.server/ssmtp
 	
-	install -d -m 755 debian/tmp/usr/share/lintian/overrides/
-	install -m 644 debian/ssmtp.lintian debian/tmp/usr/share/lintian/overrides/ssmtp
+	$(INSTALL) -d -m 755 debian/tmp/usr/share/lintian/overrides/
+	$(INSTALL) -m 644 debian/ssmtp.lintian debian/tmp/usr/share/lintian/overrides/ssmtp
 
 	dpkg --build debian/tmp ..
 
