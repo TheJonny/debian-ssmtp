@@ -1,3 +1,20 @@
+ssmtp (2.64-9) unstable; urgency=medium
+
+  * QA upload.
+  * Make the build reproducible.
+    Thanks to Chris Lamb (Closes: #777398)
+  * Fix permissions and ownership of config file.
+    Thanks to Simon Deziel (Closes: #661954)
+  * Update Vcs-* URLs to current location
+  * Use a page which follows policy §5.6.23 better
+  * Add patch to keep From: header if FromLineOverride=NO.
+    Thanks to Herbert Xu (Closes: #939298)
+  * Fix cross building.
+    Thanks to Helmut Grohne for the original patch (Closes: #861420)
+  * Orphaned package: set QA Group as maintainer
+
+ -- Ricardo Mones <mones@debian.org>  Wed, 29 Apr 2020 16:59:35 +0200
+
 ssmtp (2.64-8.1) unstable; urgency=medium
 
   * Non-maintainer upload.
