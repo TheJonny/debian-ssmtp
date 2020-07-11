@@ -1,3 +1,13 @@
+ssmtp (2.64-10) UNRELEASED; urgency=medium
+
+  * Trim trailing whitespace.
+  * Wrap long lines in changelog entries: 2.61-6, 2.61-1, 2.60.12,
+    2.60.11, 2.60.9, 2.60.8, 2.60.7.
+  * Drop custom source compression.
+  * Change priority extra to priority optional.
+
+ -- Debian Janitor <janitor@jelmer.uk>  Wed, 29 Apr 2020 15:19:26 +0000
+
 ssmtp (2.64-9) unstable; urgency=medium
 
   * QA upload.
@@ -85,7 +95,7 @@ ssmtp (2.64-5) unstable; urgency=low
 
 ssmtp (2.64-4) unstable; urgency=low
 
-  * Set back permissions as before 2.64-1 
+  * Set back permissions as before 2.64-1
     Closes: 570971, 572154, 559900, 557948, 560397
   * Fix pending l10n issues. Debconf translations:
     - Vietnamese (Clytie Siddall). Closes: 569003, 569654
@@ -405,7 +415,8 @@ ssmtp (2.61-6) unstable; urgency=low
 
   * AddHeader option, patch applied (Closes: #223329)
   * Version number was not correct, updated to 2.61 (Closes: #297636)
-  * FTBFS on hurd-i386: Unconditonal use of system limit macros (Closes: #344815)
+  * FTBFS on hurd-i386: Unconditonal use of system limit macros
+    (Closes: #344815)
   * Added Swedish translation of the debconf template, thanks to Daniel
     Nylander <yeager@lidkoping.net> (Closes: #351349)
 
@@ -464,17 +475,18 @@ ssmtp (2.61-1) unstable; urgency=low
     Patch by Matthew Palmer <mpalmer@debian.org>
   * Update of the French translation of the debconf templates (Closes: #267576).
     Patch by Michel Grentzinger <mic.grentz@online.fr>
-  * Additional information (UID, name, outgoing bytes) in logfile (Closes: #271511).
-    Patch by Thomas Kaehn <tk@westend.com>
+  * Additional information (UID, name, outgoing bytes) in logfile
+    (Closes: #271511). Patch by Thomas Kaehn <tk@westend.com>
 
  -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Fri, 17 Sep 2004 22:22:04 +1000
 
 ssmtp (2.60.12) unstable; urgency=low
 
   * Segfaults when trying to send mail with authenticated smtp (Closes: #261975)
-    Changed debian/rules to remove --enable-md5auth (it will not be enabled during the build).
-  * Changing FromLineOverride with dpkg-reconfigure doesn't work (Closes: #262146)
-    Changed debian/postinst.
+    Changed debian/rules to remove --enable-md5auth (it will not be enabled
+    during the build).
+  * Changing FromLineOverride with dpkg-reconfigure doesn't work
+    (Closes: #262146) Changed debian/postinst.
   * Japanese po-debconf template translation (Closes: #262747)
     Patch by Hideki Yamane <henrich@samba.gr.jp>
 
@@ -482,8 +494,8 @@ ssmtp (2.60.12) unstable; urgency=low
 
 ssmtp (2.60.11) unstable; urgency=low
 
-  * md5auth/md5c.o: could not read symbols: File in wrong format (Closes: #261445)
-    Changed Makefile.in to remove md5auth/*.o.
+  * md5auth/md5c.o: could not read symbols: File in wrong format
+    (Closes: #261445) Changed Makefile.in to remove md5auth/*.o.
 
  -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Mon, 26 Jul 2004 15:42:15 +1000
 
@@ -507,17 +519,19 @@ ssmtp (2.60.9) unstable; urgency=low
 
   * Can not execute generate_config (Closes: #246225)
     Changed generate_config permissions.
-  * Following INSTALL docs does build sSMTP on a Fedora Core 1 system (Closes: #246226)
-    Changed INSTALL file. Patch by Sven Heinicke <sven@nec-labs.com>
+  * Following INSTALL docs does build sSMTP on a Fedora Core 1 system
+    (Closes: #246226) Changed INSTALL file. Patch by Sven Heinicke
+    <sven@nec-labs.com>
   * ssmtp-2.60.4 does not compile if --enable-md5suth is set (Closes: #213194)
     Patch by Brandy Westcott <brandy@gentoo.org>
-  * SSMTP builds with MD5 support but during the exchange it segfaults (Closes: #249203)
-    Patch by Paul Davis <pdd@lucent.com>
+  * SSMTP builds with MD5 support but during the exchange it segfaults
+    (Closes: #249203) Patch by Paul Davis <pdd@lucent.com>
   * Build system ignores CC environment (Closes: #198764)
     Patch by Moritz Barsnick <moritz+deb@barsnick.net>
-  * Possible better config-file-generator (Closes: #245870)
-    Included in the source root directory as generate_config_alt so people could try it.
-    Patch by Jari Aalto and submitted by Robert R Schneck-McConnell <schneck@Math.Berkeley.EDU>
+  * Possible better config-file-generator (Closes: #245870) Included in the
+    source root directory as generate_config_alt so people could try it. Patch
+    by Jari Aalto and submitted by Robert R Schneck-McConnell
+    <schneck@Math.Berkeley.EDU>
 
  -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Sun, 16 May 2004 12:50:54 +1000
 
@@ -528,8 +542,8 @@ ssmtp (2.60.8) unstable; urgency=low
     Updated debian/README.debian
   * SSL support not compiled in (Closes: #244660)
     Changed debian/rules. Patch by jacob@internet24.de
-  * The source compilaton fails if ./configure --enable-logfile is selected (Closes: #242905)
-    Changed ssmtp.c. Patch by Jari Aalto.
+  * The source compilaton fails if ./configure --enable-logfile is selected
+    (Closes: #242905) Changed ssmtp.c. Patch by Jari Aalto.
   * SSL/TLS support cannot handle STARTTLS (Closes: #244666)
     Changed ssmtp.c and TLS. Patch by jacob@internet24.de
   * generate_config has syntax errors (Closes: #245083)
@@ -539,10 +553,11 @@ ssmtp (2.60.8) unstable; urgency=low
 
 ssmtp (2.60.7) unstable; urgency=high
 
-  * Fixed two format string vulnerabilities (die() and log_event()) (Closes: #243945)
-    discovered by Max Vozeler <max@hinterhof.net> (CAN-2004-0156)
-  * Creates bad date headers on some systems (Closes: #230864)
-    Changed README file to warn Cygwin porters that they may need to #define USE_OLD_ARPADATE
+  * Fixed two format string vulnerabilities (die() and log_event())
+    (Closes: #243945) discovered by Max Vozeler <max@hinterhof.net>
+    (CAN-2004-0156)
+  * Creates bad date headers on some systems (Closes: #230864) Changed README
+    file to warn Cygwin porters that they may need to #define USE_OLD_ARPADATE
 
  -- Anibal Monsalve Salazar <A.Monsalve.Salazar@IEEE.org>  Fri, 16 Apr 2004 08:01:40 +1000
 

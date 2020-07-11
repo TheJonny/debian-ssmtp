@@ -1,6 +1,6 @@
 Source: ssmtp
 Section: mail
-Priority: extra
+Priority: optional
 Maintainer: Debian QA Group <packages@qa.debian.org>
 Build-Depends: dpkg-dev (>= 1.16.1~), po-debconf, libgnutls-openssl-dev
 Standards-Version: 3.9.5
