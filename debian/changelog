@@ -1,12 +1,15 @@
 ssmtp (2.64-10) UNRELEASED; urgency=medium
 
+  * QA upload.
+
+  [ Debian Janitor ]
   * Trim trailing whitespace.
   * Wrap long lines in changelog entries: 2.61-6, 2.61-1, 2.60.12,
     2.60.11, 2.60.9, 2.60.8, 2.60.7.
   * Drop custom source compression.
   * Change priority extra to priority optional.
 
- -- Debian Janitor <janitor@jelmer.uk>  Wed, 29 Apr 2020 15:19:26 +0000
+ -- Jelmer Vernooĳ <jelmer@debian.org>  Wed, 29 Apr 2020 15:19:26 +0000
 
 ssmtp (2.64-9) unstable; urgency=medium
 
