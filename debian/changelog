@@ -1,4 +1,4 @@
-ssmtp (2.64-10) UNRELEASED; urgency=medium
+ssmtp (2.64-10) unstable; urgency=medium
 
   * QA upload.
 
@@ -9,7 +9,7 @@ ssmtp (2.64-10) UNRELEASED; urgency=medium
   * Drop custom source compression.
   * Change priority extra to priority optional.
 
- -- Jelmer Vernooĳ <jelmer@debian.org>  Wed, 29 Apr 2020 15:19:26 +0000
+ -- Jelmer Vernooĳ <jelmer@debian.org>  Wed, 03 Feb 2021 12:30:25 +0000
 
 ssmtp (2.64-9) unstable; urgency=medium
 
