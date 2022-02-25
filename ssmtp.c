@@ -874,13 +874,11 @@ bool_t read_config()
 	while(fgets(buf, sizeof(buf), fp)) {
 		char *begin=buf;
 		char *rightside;
-		/* Make comments invisible */
-		if((p = strchr(buf, '#'))) {
-			*p = (char)NULL;
-		}
 
 		/* Ignore malformed lines and comments */
+		if(*strip_pre_ws(buf) == '#') continue;
 		if(strchr(buf, '=') == (char *)NULL) continue;
+
 
 		/* Parse out keywords */
 		p=firsttok(&begin, "= \t\n");
